@@ -49,7 +49,7 @@ script:
   # Basic role syntax check
   - ansible-playbook tests/test.yml -i tests/inventory --syntax-check
 
-  - : round 1: set in config
+  - echo =====[round 1][set in config]=====
   - printf '[ssh_connection]\npipelining=False' >ansible.cfg
   - ansible-playbook tests/test.yml -i tests/inventory
   - rm ansible.cfg
