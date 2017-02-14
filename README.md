@@ -6,8 +6,8 @@ Try to detect ssh pipeling if needed, and the `ansible_ssh_pipelining` fact is s
 Requirements
 ------------
 
-ansible >= 2.0
-jinja2 >= 2.7
+- ansible >= 2.0
+- jinja2 >= 2.6
 
 Role Variables
 --------------
