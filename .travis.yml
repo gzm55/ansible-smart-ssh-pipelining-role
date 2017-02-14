@@ -37,7 +37,7 @@ install:
   - docker run -p 4848:22 --name alpine-sshd --hostname alpine-sshd -d danielguerra/alpine-sshd sh -c 'echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && exec /usr/sbin/sshd -D'
   - echo -e "root123456\nroot123456" | docker exec -i alpine-sshd passwd
   - ssh-keygen -N '' -f ~/.ssh/id_rsa
-  - cat ~/.ssh/id_rsa.pub | docker exec -i alpine-sshd passwd sh -c 'cd; umask 077; mkdir -p .ssh; cat >> .ssh/authorized_keys'
+  - cat ~/.ssh/id_rsa.pub | docker exec -i alpine-sshd sh -c 'cd; umask 077; mkdir -p .ssh; cat >> .ssh/authorized_keys'
   - ssh-keygen -f ~/.ssh/known_hosts -R localhost || true
   - sleep 1 && ssh-keyscan -H -p 4848 localhost >> ~/.ssh/known_hosts
 
