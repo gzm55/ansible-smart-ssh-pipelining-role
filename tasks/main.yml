@@ -3,8 +3,8 @@
   - name: detect remote sudo
     register: has_sudo
     raw: >
-      { command -v sudo || which sudo || sudo -h; } >/dev/null
-    failed_when: has_sudo.stderr is not defined or has_sudo.stderr != ''
+      command -v sudo || which sudo || sudo -h
+    failed_when: has_sudo.rc is not defined
     changed_when: False
 
   - name: detect ssh pipelining
@@ -27,4 +27,5 @@
 
   when:
   - local_ansible_config['ssh_connection/pipelining'] is not defined
-  - ansible_ssh_pipelining is not defined
+  - hostvars[inventory_hostname].ansible_ssh_pipelining is not defined
+# TODO ANSIBLE_SSH_PIPELINING=1

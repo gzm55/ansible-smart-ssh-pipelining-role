@@ -38,8 +38,8 @@ install:
   - echo -e "root123456\nroot123456" | docker exec -i alpine-sshd passwd
   - ssh-keygen -N '' -f ~/.ssh/id_rsa
   - cat ~/.ssh/id_rsa.pub | docker exec -i alpine-sshd sh -c 'cd; umask 077; mkdir -p .ssh; cat >> .ssh/authorized_keys'
-  - ssh-keygen -f ~/.ssh/known_hosts -R localhost || true
-  - sleep 1 && ssh-keyscan -H -p 4848 localhost >> ~/.ssh/known_hosts
+  - ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:4848 || true
+  - sleep 2 && ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
 
   - export ANSIBLE_ROLES_PATH=$PWD/..
 
@@ -47,13 +47,16 @@ script:
   - set -e
 
   # Basic role syntax check
-  - ansible-playbook tests/test.yml -i tests/inventory --syntax-check
+  - ansible-playbook tests/test*.yml -i tests/inventory --syntax-check
 
-  - echo =====[round 1][set in config]=====
+  - echo =====[round 1][overriding detecting]=====
   - printf '[ssh_connection]\npipelining=False' >ansible.cfg
   - ansible-playbook tests/test.yml -i tests/inventory
-  - rm ansible.cfg
+  - echo >ansible.cfg
   - ansible-playbook tests/test.yml -i tests/inventory --limit testserverB
+
+  - echo =====[round 2][no sudo command]=====
+  - ansible-playbook tests/test-no-sudo.yml -i tests/inventory
 
 #notifications:
 #  webhooks: https://galaxy.ansible.com/api/v1/notifications/

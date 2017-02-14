@@ -1,0 +1,21 @@
+---
+- hosts: testserverA
+  gather_facts: False
+  remote_user: root
+
+  roles:
+  - ansible-smart-ssh-pipelining-role
+
+  tasks:
+  - name: post role status
+    set_fact:
+      post_status: |-
+        {{ ( ansible_ssh_pipelining
+             | d(local_ansible_config['ssh_connection/pipelining'])
+             is defined )
+           | ternary(ansible_ssh_pipelining
+                     | d(local_ansible_config['ssh_connection/pipelining'])
+                     | ternary('t', 'f')
+                     , 'undefined') }}
+  - debug: msg="{{'post=' + post_status}}"
+  - assert: { that: "post_status == 't'" }
