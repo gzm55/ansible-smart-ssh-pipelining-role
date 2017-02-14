@@ -1,0 +1,59 @@
+---
+language: python
+python: "2.7"
+
+sudo: required
+
+# Use the docker for testing
+services:
+  - docker
+
+# Install ansible
+addons:
+  apt:
+    packages:
+    - python-pip
+    - sshpass
+
+install:
+  - which ssh-keygen && which ssh-agent && which ssh-add && which sshpass
+
+  # Install ansible
+  - pip install ansible
+
+  # Check ansible version
+  - ansible --version
+
+  # Install python module and role dependencies
+  - test -f requirements.txt && pip install -r requirements.txt
+  - test -f requirements.yml && ansible-galaxy install -p tests/roles -r requirements.yml
+
+  # Start a sshd container for testing
+  # - listen on localhost:4848
+  # - enable root login
+  # - root:root123456 and pubkey
+  - docker pull danielguerra/alpine-sshd
+  - docker rm -f alpine-sshd || true
+  - docker run -p 4848:22 --name alpine-sshd --hostname alpine-sshd -d danielguerra/alpine-sshd sh -c 'echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && exec /usr/sbin/sshd -D'
+  - echo -e "root123456\nroot123456" | docker exec -i alpine-sshd passwd
+  - ssh-keygen -N '' -f ~/.ssh/id_rsa
+  - cat ~/.ssh/id_rsa.pub | docker exec -i alpine-sshd passwd sh -c 'cd; umask 077; mkdir -p .ssh; cat >> .ssh/authorized_keys'
+  - ssh-keygen -f ~/.ssh/known_hosts -R localhost || true
+  - sleep 1 && ssh-keyscan -H -p 4848 localhost >> ~/.ssh/known_hosts
+
+  - export ANSIBLE_ROLES_PATH=$PWD/..
+
+script:
+  - set -e
+
+  # Basic role syntax check
+  - ansible-playbook tests/test.yml -i tests/inventory --syntax-check
+
+  - : round 1: set in config
+  - printf '[ssh_connection]\npipelining=False' >ansible.cfg
+  - ansible-playbook tests/test.yml -i tests/inventory
+  - rm ansible.cfg
+  - ansible-playbook tests/test.yml -i tests/inventory --limit testserverB
+
+#notifications:
+#  webhooks: https://galaxy.ansible.com/api/v1/notifications/

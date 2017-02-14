@@ -1,0 +1,30 @@
+---
+- block:
+  - name: detect remote sudo
+    register: has_sudo
+    raw: >
+      { command -v sudo || which sudo || sudo -h; } >/dev/null
+    failed_when: has_sudo.stderr is not defined or has_sudo.stderr != ''
+    changed_when: False
+
+  - name: detect ssh pipelining
+    register: detect_pipelining
+    when: has_sudo.rc == 0
+    become: True
+    vars:
+      ansible_become_pass: ''
+      ansible_ssh_pipelining: True
+    raw: exit
+    ignore_errors: True
+    changed_when: False
+
+  - name: set ssh pipelining
+    set_fact:
+      ansible_ssh_pipelining: >
+        {{ has_sudo.rc != 0 or
+           ( detect_pipelining.module_stderr.find('must have a tty') == -1 and
+             detect_pipelining.module_stderr.find('no tty present') == -1) }}
+
+  when:
+  - local_ansible_config['ssh_connection/pipelining'] is not defined
+  - ansible_ssh_pipelining is not defined
