@@ -28,4 +28,4 @@
   when:
   - local_ansible_config['ssh_connection/pipelining'] is not defined
   - hostvars[inventory_hostname].ansible_ssh_pipelining is not defined
-# TODO ANSIBLE_SSH_PIPELINING=1
+  - lookup('env', 'ANSIBLE_SSH_PIPELINING') != ''

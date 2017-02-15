@@ -54,6 +54,7 @@ script:
   - ansible-playbook tests/test.yml -i tests/inventory
   - echo >ansible.cfg
   - ansible-playbook tests/test.yml -i tests/inventory --limit testserverB
+  - ANSIBLE_SSH_PIPELINING=False ansible-playbook tests/test.yml -i tests/inventory
 
   - echo =====[round 2][no sudo command]=====
   - ansible-playbook tests/test-no-sudo.yml -i tests/inventory

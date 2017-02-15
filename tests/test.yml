@@ -2,33 +2,16 @@
 - hosts: all
   gather_facts: False
   pre_tasks:
-  - include_role:
-      name: gzm55.local_ansible_config
-    vars:
-      config_key: ssh_connection/pipelining
   - name: pre role status
     set_fact:
-      pre_status: |-
-        {{ ( ansible_ssh_pipelining
-             | d(local_ansible_config['ssh_connection/pipelining'])
-             is defined )
-           | ternary(ansible_ssh_pipelining
-                     | d(local_ansible_config['ssh_connection/pipelining'])
-                     | ternary('t', 'f')
-                     , 'undefined') }}
+      pre_status: "{{ ansible_ssh_pipelining }}"
+
   roles:
   - ansible-smart-ssh-pipelining-role
 
   tasks:
   - name: post role status
     set_fact:
-      post_status: |-
-        {{ ( ansible_ssh_pipelining
-             | d(local_ansible_config['ssh_connection/pipelining'])
-             is defined )
-           | ternary(ansible_ssh_pipelining
-                     | d(local_ansible_config['ssh_connection/pipelining'])
-                     | ternary('t', 'f')
-                     , 'undefined') }}
+      post_status: "{{ ansible_ssh_pipelining }}"
   - debug: msg="{{[ 'pre=' + pre_status, 'post=' + post_status]}}"
   - assert: { that: "pre_status == post_status" }
