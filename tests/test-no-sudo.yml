@@ -10,12 +10,6 @@
   - name: post role status
     set_fact:
       post_status: |-
-        {{ ( ansible_ssh_pipelining
-             | d(local_ansible_config['ssh_connection/pipelining'])
-             is defined )
-           | ternary(ansible_ssh_pipelining
-                     | d(local_ansible_config['ssh_connection/pipelining'])
-                     | ternary('t', 'f')
-                     , 'undefined') }}
-  - debug: msg="{{'post=' + post_status}}"
-  - assert: { that: "post_status == 't'" }
+        {{ ansible_ssh_pipelining }}
+  - debug: msg="{{ 'post=' + post_status | string }}"
+  - assert: { that: "post_status == True" }
