@@ -20,7 +20,7 @@
 
   - name: set ssh pipelining
     set_fact:
-      ansible_ssh_pipelining: >
+      ansible_ssh_pipelining: |-
         {{ has_sudo.rc != 0 or
            ( detect_pipelining.module_stderr.find('must have a tty') == -1 and
              detect_pipelining.module_stderr.find('no tty present') == -1) }}
@@ -28,4 +28,4 @@
   when:
   - local_ansible_config['ssh_connection/pipelining'] is not defined
   - hostvars[inventory_hostname].ansible_ssh_pipelining is not defined
-  - lookup('env', 'ANSIBLE_SSH_PIPELINING') != ''
+  - lookup('env', 'ANSIBLE_SSH_PIPELINING') == ''
