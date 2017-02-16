@@ -13,24 +13,28 @@
       ansible_become_pass: '.'
       ansible_python_interpreter: exit
     ping:
-    failed_when: detect_pipelining.module_stderr is not defined or detect_pipelining.module_stdout is not defined
+    failed_when: False
+    #- detect_pipelining.module_stderr is not defined or detect_pipelining.module_stdout is not defined
+    #- detect_pipelining.msg != 
     changed_when: False
+    ignore_errors: True
 
   - name: flipping
-    when:
-      - detect_pipelining.module_stderr is defined
-      - detect_pipelining.module_stdout is defined
-      - ansible_ssh_pipelining != (
-          detect_pipelining.module_stderr.find('must have a tty') == -1 and
-          detect_pipelining.module_stdout.find('must have a tty') == -1 and
-          detect_pipelining.module_stderr.find('no tty present') == -1 and
-          detect_pipelining.module_stdout.find('no tty present') == -1 and
-          detect_pipelining.module_stderr.find('must be run from a terminal') == -1 and
-          detect_pipelining.module_stdout.find('must be run from a terminal') == -1 and
-          detect_pipelining.module_stderr.find('standard in must be a tty') == -1 and
-          detect_pipelining.module_stdout.find('standard in must be a tty') == -1 and
-          True
-        )
+    when: ansible_ssh_pipelining != (
+            (detect_pipelining.module_stderr | d()).find('must have a tty') == -1 and
+            (detect_pipelining.module_stdout | d()).find('must have a tty') == -1 and
+            (detect_pipelining.module_stderr | d()).find('no tty present') == -1 and
+            (detect_pipelining.module_stdout | d()).find('no tty present') == -1 and
+            (detect_pipelining.module_stderr | d()).find('must be run from a terminal') == -1 and
+            (detect_pipelining.module_stdout | d()).find('must be run from a terminal') == -1 and
+            (detect_pipelining.module_stderr | d()).find('standard in must be a tty') == -1 and
+            (detect_pipelining.module_stdout | d()).find('standard in must be a tty') == -1 and
+            (detect_pipelining.module_stderr | d()).find('su{{':'}} must be suid to work properly') == -1 and
+            (detect_pipelining.module_stdout | d()).find('su{{':'}} must be suid to work properly') == -1 and
+            (detect_pipelining.module_stderr | d()).find('su{{':'}} incorrect password') == -1 and
+            (detect_pipelining.module_stdout | d()).find('su{{':'}} incorrect password') == -1 and
+            True
+          )
     set_fact:
       ansible_ssh_pipelining: "{{ not ansible_ssh_pipelining }}"
 

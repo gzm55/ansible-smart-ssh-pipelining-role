@@ -1,11 +1,10 @@
 ---
 - hosts: testserverA
   gather_facts: False
-  remote_user: root
 
   roles:
   - ansible-smart-ssh-pipelining-role
 
   tasks:
   - debug: msg="{{ 'post=' + ansible_ssh_pipelining | string }}"
-  - assert: { that: "ansible_ssh_pipelining == True" }
+  - assert: { that: "ansible_ssh_pipelining == (expect_pipelining | d(True) | bool)" }

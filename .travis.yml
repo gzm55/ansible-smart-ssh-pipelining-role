@@ -38,11 +38,11 @@ install:
   - docker run -p 4848:22 --name alpine-sshd --hostname alpine-sshd -d danielguerra/alpine-sshd sh -c 'echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && exec /usr/sbin/sshd -D'
   - echo -e "root123456\nroot123456\n" | docker exec -i alpine-sshd passwd
   - docker exec -i alpine-sshd sh -c 'apk update'
-  - docker exec -i alpine-sshd sh -c 'adduser userA; echo -e "userA123456\nuserA123456\n" passwd userA'
+  - docker exec -i alpine-sshd sh -c 'echo -e "userA123456\nuserA123456\n" | adduser userA'
   - ssh-keygen -N '' -f ~/.ssh/id_rsa
   - cat ~/.ssh/id_rsa.pub | docker exec -i alpine-sshd sh -c 'cd; umask 077; mkdir -p .ssh; cat >> .ssh/authorized_keys'
-  - docker exec -i alpine-sshd sh -c 'sudo -u userA sh -c "cd; umask 077; mkdir -p .ssh; touch .ssh/known_hosts"'
-  - docker exec -i alpine-sshd sh -c 'cat ~/.ssh/known_hosts >> /home/userA/.ssh/known_hosts'
+  - docker exec -i alpine-sshd sh -c 'su -c "cd; umask 077; mkdir -p .ssh; touch .ssh/known_hosts" userA'
+  - docker exec -i alpine-sshd sh -c 'cat ~/.ssh/authorized_keys >> /home/userA/.ssh/authorized_keys'
   - ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:4848 || true
   - sleep 1 && ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
 
@@ -62,9 +62,19 @@ script:
   - ANSIBLE_SSH_PIPELINING=False ansible-playbook tests/test.yml -i tests/inventory
 
   - echo =====[round 2][no sudo command]=====
-  - ansible-playbook tests/test-no-sudo.yml -i tests/inventory
+  - ansible-playbook tests/test-no-sudo.yml -i tests/inventory --user userA -e expect_pipelining=True
 
-  - docker exec -i alpine-sshd sh -c 'apk add sudo'
+  - echo =====[round 3][sudo + requiretty]=====
+  - docker exec -i alpine-sshd sh -c 'apk add sudo; echo "Defaults requiretty" >/etc/sudoers.d/reqtty'
+  - ansible-playbook tests/test-no-sudo.yml -i tests/inventory --user userA -e expect_pipelining=False
+  - docker exec -i alpine-sshd sh -c 'echo "Defaults !requiretty" >/etc/sudoers.d/reqtty'
+  - ansible-playbook tests/test-no-sudo.yml -i tests/inventory --user userA -e expect_pipelining=True
+
+  - echo =====[round 4][su]=====
+  - docker exec -i alpine-sshd sh -c 'apk del busybox-suid; rm /bin/su; ln -s /bin/busybox /bin/su'
+  - ansible-playbook tests/test-no-sudo.yml -i tests/inventory --user userA -e expect_pipelining=False --become-method su
+  - docker exec -i alpine-sshd sh -c 'apk add busybox-suid; rm /bin/su; ln -s /bin/bbsuid /bin/su'
+  - ansible-playbook tests/test-no-sudo.yml -i tests/inventory --user userA -e expect_pipelining=False --become-method su
 
 #notifications:
 #  webhooks: https://galaxy.ansible.com/api/v1/notifications/
