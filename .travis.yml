@@ -32,12 +32,17 @@ install:
   # - listen on localhost:4848
   # - enable root login
   # - root:root123456 and pubkey
+  # - userA:userA123456 and pubkey
   - docker pull danielguerra/alpine-sshd
   - docker rm -f alpine-sshd || true
   - docker run -p 4848:22 --name alpine-sshd --hostname alpine-sshd -d danielguerra/alpine-sshd sh -c 'echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && exec /usr/sbin/sshd -D'
   - echo -e "root123456\nroot123456" | docker exec -i alpine-sshd passwd
+  - docker exec -i alpine-sshd sh -c 'apk update; apk add sudo; adduser userA'
+  - echo -e "userA123456\nuserA123456" | docker exec -i alpine-sshd passwd userA
   - ssh-keygen -N '' -f ~/.ssh/id_rsa
   - cat ~/.ssh/id_rsa.pub | docker exec -i alpine-sshd sh -c 'cd; umask 077; mkdir -p .ssh; cat >> .ssh/authorized_keys'
+  - docker exec -i alpine-sshd sh -c 'sudo -u userA sh -c "cd; umask 077; mkdir -p .ssh; touch .ssh/known_hosts"'
+  - docker exec -i alpine-sshd sh -c 'cat ~/.ssh/known_hosts >> /home/userA/.ssh/known_hosts'
   - ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:4848 || true
   - sleep 2 && ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
 
@@ -58,11 +63,6 @@ script:
 
   - echo =====[round 2][no sudo command]=====
   - ansible-playbook tests/test-no-sudo.yml -i tests/inventory
-
-  - docker exec -i alpine-sshd sh -c 'apk update; apk add sudo; useradd userA'
-  - echo -e "userA123456\nuserA123456" | docker exec -i alpine-sshd passwd userA
-  - docker exec -i alpine-sshd sh -c 'sudo -u userA sh -c "cd; umask 077; mkdir -p .ssh; touch .ssh/known_hosts"'
-  - docker exec -i alpine-sshd sh -c 'cat ~/.ssh/known_hosts >> /home/userA/.ssh/known_hosts'
 
 #notifications:
 #  webhooks: https://galaxy.ansible.com/api/v1/notifications/
