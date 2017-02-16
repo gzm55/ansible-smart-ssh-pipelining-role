@@ -4,8 +4,11 @@ smart_ssh_pipelining
 Try to detect ssh pipeling if needed, and the `ansible_ssh_pipelining` fact is set to `True` or `False`.
 If the following conditions is set, the role will skip detecting for the hosts:
 - set inventory variable: `ansible_ssh_pipelining`;
-- `pipelining` in the effective ansible.cfg;
+- set `pipelining` in the effective ansible.cfg;
 - `ANSIBLE_SSH_PIPELINING` environment is not empty.
+
+Each time you changing the become method or the become flag,
+this role can be re-inclued to reflect the correct pipelining status.
 
 Requirements
 ------------

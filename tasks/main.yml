@@ -1,31 +1,40 @@
 ---
-- block:
-  - name: detect remote sudo
-    register: has_sudo
-    raw: >
-      command -v sudo || which sudo || sudo -h
-    failed_when: has_sudo.rc is not defined
-    changed_when: False
+- name: save inventory ssh pipelining status
+  when: ansible_inventory_ssh_pipelining_defined is not defined
+  set_fact:
+    ansible_inventory_ssh_pipelining_defined: "{{ hostvars[inventory_hostname].ansible_ssh_pipelining is defined }}"
 
-  - name: detect ssh pipelining
+- block:
+  - name: detecting
     register: detect_pipelining
-    when: has_sudo.rc == 0
     become: True
     vars:
-      ansible_become_pass: ''
       ansible_ssh_pipelining: True
-    raw: exit
-    ignore_errors: True
+      ansible_become_pass: '.'
+      ansible_python_interpreter: exit
+    ping:
+    failed_when: detect_pipelining.module_stderr is not defined or detect_pipelining.module_stdout is not defined
     changed_when: False
 
-  - name: set ssh pipelining
+  - name: flipping
+    when:
+      - detect_pipelining.module_stderr is defined
+      - detect_pipelining.module_stdout is defined
+      - ansible_ssh_pipelining != (
+          detect_pipelining.module_stderr.find('must have a tty') == -1 and
+          detect_pipelining.module_stdout.find('must have a tty') == -1 and
+          detect_pipelining.module_stderr.find('no tty present') == -1 and
+          detect_pipelining.module_stdout.find('no tty present') == -1 and
+          detect_pipelining.module_stderr.find('must be run from a terminal') == -1 and
+          detect_pipelining.module_stdout.find('must be run from a terminal') == -1 and
+          detect_pipelining.module_stderr.find('standard in must be a tty') == -1 and
+          detect_pipelining.module_stdout.find('standard in must be a tty') == -1 and
+          True
+        )
     set_fact:
-      ansible_ssh_pipelining: |-
-        {{ has_sudo.rc != 0 or
-           ( detect_pipelining.module_stderr.find('must have a tty') == -1 and
-             detect_pipelining.module_stderr.find('no tty present') == -1) }}
+      ansible_ssh_pipelining: "{{ not ansible_ssh_pipelining }}"
 
   when:
-  - local_ansible_config['ssh_connection/pipelining'] is not defined
-  - hostvars[inventory_hostname].ansible_ssh_pipelining is not defined
+  - not ansible_inventory_ssh_pipelining_defined
   - lookup('env', 'ANSIBLE_SSH_PIPELINING') == ''
+  - local_ansible_config['ssh_connection/pipelining'] is not defined
