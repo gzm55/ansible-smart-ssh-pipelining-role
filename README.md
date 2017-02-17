@@ -14,6 +14,8 @@ When become method is 'su', ansible will ignore ansible_ssh_pipelining, so only 
 and enable ssh pipelining for all other meghods. Having a remote host without 'sudo' command,
 we also enable pipelining, cause a become-task will always fail in this scenario.
 
+This role does not require remote machines having a python executable,
+and can be safely used before seeding the machines.
 
 Requirements
 ------------
