@@ -67,11 +67,13 @@ script:
   - echo =====[round 3][sudo + requiretty]=====
   - docker exec -i alpine-sshd sh -c 'apk add sudo; echo "Defaults requiretty" >/etc/sudoers.d/reqtty'
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=False
+  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=False --become
   - docker exec -i alpine-sshd sh -c 'echo "Defaults !requiretty" >/etc/sudoers.d/reqtty'
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True
+  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become
 
   - echo =====[round 4][other become methods]=====
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method su
+  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method su --become
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method pbrun
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method pfexec
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method doas

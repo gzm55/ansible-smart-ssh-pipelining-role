@@ -11,6 +11,7 @@
     connection: ssh
     vars:
     - ansible_ssh_executable: "{{ role_path | quote }}/files/parse-become-method.sh"
+    - ansible_become: True
     - ansible_become_pass: ''
     - ansible_host: BECOME-HOST
     raw: exit
@@ -30,6 +31,7 @@
     become: True
     vars:
       ansible_ssh_pipelining: True
+      ansible_become: True
       ansible_become_pass: '.'
       ansible_python_interpreter: exit
     ping:
