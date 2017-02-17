@@ -66,7 +66,7 @@ script:
 
   - echo =====[round 3][sudo + requiretty]=====
   - docker exec -i alpine-sshd sh -c 'apk add sudo; echo "Defaults requiretty" >/etc/sudoers.d/reqtty'
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=False
+  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=False -vvvvv
   - docker exec -i alpine-sshd sh -c 'echo "Defaults !requiretty" >/etc/sudoers.d/reqtty'
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True
 
