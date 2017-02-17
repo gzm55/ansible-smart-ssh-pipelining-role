@@ -1,14 +1,19 @@
 smart_ssh_pipelining
 =========
 
-Try to detect ssh pipeling if needed, and the `ansible_ssh_pipelining` fact is set to `True` or `False`.
-If the following conditions is set, the role will skip detecting for the hosts:
+Try to detect and enable ssh pipeling if needed, and the `ansible_ssh_pipelining` fact.
+If the following conditions are matched, the role will skip detecting for the hosts:
 - set inventory variable: `ansible_ssh_pipelining`;
 - set `pipelining` in the effective ansible.cfg;
 - `ANSIBLE_SSH_PIPELINING` environment is not empty.
 
-Each time you changing the become method or the become flag,
+Each time you changing the become method or the become flag or change the requiretty in sudoers config,
 this role can be re-inclued to reflect the correct pipelining status.
+
+When become method is 'su', ansible will ignore ansible_ssh_pipelining, so only detect for 'sudo',
+and enable ssh pipelining for all other meghods. Having a remote host without 'sudo' command,
+we also enable pipelining, cause a become-task will always fail in this scenario.
+
 
 Requirements
 ------------
@@ -16,6 +21,9 @@ Requirements
 Python modules:
 - ansible >= 2.0
 - jinja2 >= 2.6
+
+Command:
+- sshpass (for passing a fake password to support the old version sudo command)
 
 Role Variables
 --------------
@@ -25,7 +33,8 @@ N/A
 Dependencies
 ------------
 
-gzm55.local_ansible_config
+- `gzm55.require_local_command`
+- `gzm55.local_ansible_config`
 
 Example Playbook
 ----------------
