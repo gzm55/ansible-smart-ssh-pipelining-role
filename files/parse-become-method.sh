@@ -6,8 +6,8 @@ done
 
 set -- $2
 if test -n "$1"; then
-  echo "$1"
+  echo -n "$1"
   exit 0
 fi
 
-echo sudo
+echo -n sudo
