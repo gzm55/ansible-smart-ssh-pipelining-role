@@ -1,11 +1,31 @@
 ---
 - name: save inventory ssh pipelining status
-  when: ansible_inventory_ssh_pipelining_defined is not defined
+  when: ansible_inventory_ssh_pipelining_is_not_defined is not defined
   set_fact:
-    ansible_inventory_ssh_pipelining_defined: "{{ hostvars[inventory_hostname].ansible_ssh_pipelining is defined }}"
+    ansible_inventory_ssh_pipelining_is_not_defined: "{{ hostvars[inventory_hostname].ansible_ssh_pipelining is not defined }}"
 
 - block:
+  - name: parse become method
+    become: True
+    register: detect_become_method
+    connection: ssh
+    vars:
+    - ansible_ssh_executable: "{{ role_path | quote }}/files/parse-become-method.sh"
+    - ansible_become_pass: ''
+    - ansible_host: BECOME-HOST
+    raw: exit
+    changed_when: False
+
+  ## NOTE: When become method is 'su', it will ignore ansible_ssh_pipelining,
+  ##       so only detect for 'sudo', and enable ssh pipelining for all others.
+  ##
+  ## NOTE: set "ansible_become_pass: '.'" will remote -n from sudo flag,
+  ##       which will break old version sudo.
+  ##
+  ## NOTE: Having remote host without 'sudo' command, we also enable pipelining,
+  ##       cause a become-task will always fail in this senior.
   - name: detecting
+    when: detect_become_method.stdout | d('sudo', True) == 'sudo'
     register: detect_pipelining
     become: True
     vars:
@@ -14,31 +34,22 @@
       ansible_python_interpreter: exit
     ping:
     failed_when: False
-    #- detect_pipelining.module_stderr is not defined or detect_pipelining.module_stdout is not defined
-    #- detect_pipelining.msg != 
     changed_when: False
     ignore_errors: True
 
   - name: flipping
+    vars:
+    - detect_string: "{{ (detect_pipelining.module_stdout | d()) + '\n' + (detect_pipelining.module_stderr | d()) }}"
     when: ansible_ssh_pipelining != (
-            (detect_pipelining.module_stderr | d()).find('must have a tty') == -1 and
-            (detect_pipelining.module_stdout | d()).find('must have a tty') == -1 and
-            (detect_pipelining.module_stderr | d()).find('no tty present') == -1 and
-            (detect_pipelining.module_stdout | d()).find('no tty present') == -1 and
-            (detect_pipelining.module_stderr | d()).find('must be run from a terminal') == -1 and
-            (detect_pipelining.module_stdout | d()).find('must be run from a terminal') == -1 and
-            (detect_pipelining.module_stderr | d()).find('standard in must be a tty') == -1 and
-            (detect_pipelining.module_stdout | d()).find('standard in must be a tty') == -1 and
-            (detect_pipelining.module_stderr | d()).find('su{{':'}} must be suid to work properly') == -1 and
-            (detect_pipelining.module_stdout | d()).find('su{{':'}} must be suid to work properly') == -1 and
-            (detect_pipelining.module_stderr | d()).find('su{{':'}} incorrect password') == -1 and
-            (detect_pipelining.module_stdout | d()).find('su{{':'}} incorrect password') == -1 and
-            True
+            detect_become_method.stdout | d('sudo', True) != 'sudo' or
+            ( detect_string.find('must have a tty') == -1 and
+              detect_string.find('no tty present') == -1
+            )
           )
     set_fact:
       ansible_ssh_pipelining: "{{ not ansible_ssh_pipelining }}"
 
   when:
-  - not ansible_inventory_ssh_pipelining_defined
+  - ansible_inventory_ssh_pipelining_is_not_defined
   - lookup('env', 'ANSIBLE_SSH_PIPELINING') == ''
   - local_ansible_config['ssh_connection/pipelining'] is not defined
