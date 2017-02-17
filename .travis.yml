@@ -78,5 +78,5 @@ script:
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method dzdo
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method ksu
 
-#notifications:
+notifications:
   webhooks: https://galaxy.ansible.com/api/v1/notifications/
