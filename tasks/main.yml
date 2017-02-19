@@ -33,7 +33,7 @@
       ansible_ssh_pipelining: True
       ansible_become: True
       ansible_become_pass: '.'
-      ansible_python_interpreter: exit
+      ansible_python_interpreter: 'true'
     ping:
     failed_when: False
     changed_when: False
