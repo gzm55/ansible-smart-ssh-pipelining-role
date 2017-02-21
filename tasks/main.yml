@@ -1,4 +1,16 @@
 ---
+- name: override ssh ansible_ssh_executable
+  run_once: True
+  when: inventory_hostname == ansible_play_hosts[0]
+  connection: ssh
+  vars:
+  - ansible_connection: ssh
+  - ansible_ssh_executable: "{{ role_path }}/files/dump-ssh-opts.sh"
+  assert:
+    that:
+    - "[ansible_connection] | intersect(['ssh', 'smart']) | list | length == 1"
+    - "ansible_ssh_executable == (role_path + '/files/dump-ssh-opts.sh')"
+
 - name: save inventory ssh pipelining status
   when: ansible_inventory_ssh_pipelining_is_not_defined is not defined
   set_fact:
@@ -6,15 +18,14 @@
 
 - block:
   - name: parse become method
-    become: True
     register: detect_become_method
+    become: True
     connection: ssh
     vars:
+    - ansible_connection: ssh
     - ansible_ssh_executable: "{{ role_path | quote }}/files/parse-become-method.sh"
     - ansible_become: True
-    - ansible_become_pass: ''
-    - ansible_host: BECOME-HOST
-    raw: exit
+    raw: --FAKE::::COMMAND={{ lookup('pipe', 'echo $PPID') }}
     changed_when: False
 
   ## NOTE: When become method is 'su', it will ignore ansible_ssh_pipelining,
@@ -25,6 +36,8 @@
   ##
   ## NOTE: Having remote host without 'sudo' command, we also enable pipelining,
   ##       cause a become-task will always fail in this scenario.
+  ##
+  ## TODO: support custom ansible_become_exe
   - name: detecting
     when: detect_become_method.stdout | d('sudo', True) == 'sudo'
     register: detect_pipelining
@@ -33,7 +46,6 @@
       ansible_ssh_pipelining: True
       ansible_become: True
       ansible_become_pass: '.'
-      ansible_python_interpreter: 'true'
     ping:
     failed_when: False
     changed_when: False
