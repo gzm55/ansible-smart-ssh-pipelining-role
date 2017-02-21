@@ -31,8 +31,7 @@
   ## NOTE: When become method is 'su', it will ignore ansible_ssh_pipelining,
   ##       so only detect for 'sudo', and enable ssh pipelining for all others.
   ##
-  ## NOTE: set "ansible_become_pass: '.'" will remote -n from sudo flag,
-  ##       which will break old version sudo.
+  ## NOTE: For old version sudo (not support -n option), it will always enable ssh pipelining
   ##
   ## NOTE: Having remote host without 'sudo' command, we also enable pipelining,
   ##       cause a become-task will always fail in this scenario.
@@ -45,7 +44,6 @@
     vars:
       ansible_ssh_pipelining: True
       ansible_become: True
-      ansible_become_pass: '.'
     ping:
     failed_when: False
     changed_when: False
