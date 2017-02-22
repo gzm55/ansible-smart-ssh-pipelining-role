@@ -1,5 +1,5 @@
 smart_ssh_pipelining
-=========
+====================
 
 Try to detect and enable ssh pipeling if needed, and the `ansible_ssh_pipelining` fact.
 If the following conditions are matched, the role will skip detecting for the hosts:

@@ -1,7 +1,13 @@
 ---
 - name: override ssh ansible_ssh_executable
   run_once: True
-  when: inventory_hostname == ansible_play_hosts[0]
+  when:
+  - inventory_hostname == ansible_play_hosts[0]
+  - ansible_play_hosts_all
+    | map('extract', hostvars)
+    | rejectattr('ansible_become_method', 'defined')
+    | list
+    | length > 0
   connection: ssh
   vars:
   - ansible_connection: ssh
@@ -18,6 +24,7 @@
 
 - block:
   - name: parse become method
+    when: ansible_become_method is not defined
     register: detect_become_method
     become: True
     connection: ssh
@@ -25,25 +32,91 @@
     - ansible_connection: ssh
     - ansible_ssh_executable: "{{ role_path | quote }}/files/parse-become-method.sh"
     - ansible_become: True
+    - ansible_become_user: --FAKE::::USER={{ lookup('pipe', 'echo $PPID') }}
     raw: --FAKE::::COMMAND={{ lookup('pipe', 'echo $PPID') }}
+    failed_when: detect_become_method.stderr | d() != ''
     changed_when: False
 
+  ## check sudo flags for old version
+  ## when the become method is sudo, we will check for every remote machine:
+  ##   0. have a sudo with -n option: add -n to become flags;
+  ##   1. have a sudo without -n option: remove -n from become flags;
+  ##   2. no sudo command, do nothing.
+  - block:
+
+    - name: detecting sudo version
+      register: detect_sudo_version
+      vars:
+      - raw_script: |-
+          {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=false
+          command -v {{ ansible_become_exe | d('sudo', True) | quote }} \
+            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('&&', '; and') }} \
+            {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=true
+          which {{ ansible_become_exe | d('sudo', True) | quote }} \
+            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('&&', '; and') }} \
+            {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=true
+          $have_sudo \
+            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('||', '; or') }} \
+            exit 127
+          {{ ansible_become_exe | d('sudo', True) | quote }} -V
+      raw: >
+        {{ ( [ansible_shell_type | d('sh')]
+             | intersect(['sh', 'csh', 'fish'])
+             | list
+             | length == 1 )
+           | ternary(ansible_shell_executable, '/bin/sh')
+           | quote
+        }} -c {{ raw_script | quote }}
+      failed_when: False
+      changed_when: False
+
+    - name: update sudo flag
+      vars:
+      - sudo_version: "{{ detect_sudo_version.stdout_lines
+                          | select('match', 'Sudo version .*')
+                          | first
+                          | d('')
+                          | regex_replace('^[^0-9]*', '')
+                          | d('0.0', True) }}"
+      when:
+      - detect_sudo_version.rc == 0
+      - detect_sudo_version.stdout_lines
+        | select('match', 'Sudo version .*')
+        | list
+        | length >= 1
+      - (ansible_become_flags | d('-H -S -n', True))
+        == (sudo_version
+            | version_compare('1.7', '>=')
+            | ternary('-H -S', '-H -S -n')
+      set_fact:
+        ansible_become_flags: "{{ sudo_version
+                                  | version_compare('1.7', '>=')
+                                  | ternary('', '-H -S') }}"
+
+    when:
+    - ansible_version.full | version_compare('2.2', '>=')
+    - ansible_become_method | d(detect_become_method.stdout) | d('sudo', True) == 'sudo'
+
   ## NOTE: When become method is 'su', it will ignore ansible_ssh_pipelining,
-  ##       so only detect for 'sudo', and enable ssh pipelining for all others.
+  ##       so only detect for 'sudo' and unknown methods,
+  ##       and enable ssh pipelining for all other known methods.
   ##
-  ## NOTE: For old version sudo (not support -n option), it will always enable ssh pipelining
-  ##
-  ## NOTE: Having remote host without 'sudo' command, we also enable pipelining,
+  ## NOTE: Having remote hosts without 'sudo' command,
+  ##       or become flags containing invalid options, we also enable pipelining,
   ##       cause a become-task will always fail in this scenario.
   ##
   ## TODO: support custom ansible_become_exe
   - name: detecting
-    when: detect_become_method.stdout | d('sudo', True) == 'sudo'
+    when: ([ ansible_become_method | d(detect_become_method.stdout) | d('sudo', True) ])
+          | intersect(['sudo', 'UNKNOWN-BECOME-METHOD'])
+          | list
+          | length > 0
     register: detect_pipelining
     become: True
     vars:
-      ansible_ssh_pipelining: True
-      ansible_become: True
+    - ansible_ssh_pipelining: True
+    - ansible_become: True
+    - ansible_become_user: --FAKE::::USER={{ lookup('pipe', 'echo $PPID') }}
     ping:
     failed_when: False
     changed_when: False
@@ -53,7 +126,11 @@
     vars:
     - detect_string: "{{ (detect_pipelining.module_stdout | d()) + '\n' + (detect_pipelining.module_stderr | d()) }}"
     when: ansible_ssh_pipelining != (
-            detect_become_method.stdout | d('sudo', True) != 'sudo' or
+            [ ansible_become_method | d(detect_become_method.stdout) | d('sudo', True) ]
+            | intersect(['sudo', 'UNKNOWN-BECOME-METHOD'])
+            | list
+            | length == 0
+            or
             ( detect_string.find('must have a tty') == -1 and
               detect_string.find('no tty present') == -1
             )

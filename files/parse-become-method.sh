@@ -7,9 +7,11 @@ for i; do
   shift
 done
 
-if test ":$last" = ":--FAKE::::COMMAND=$PPID"; then
-  echo -n NO-BECOME
-else
-  set -- $last
-  echo -n "${1:-sudo}"
-fi
+result=UNKNOWN-BECOME-METHOD
+set -- $last
+case "$1" in
+(--FAKE::::COMMAND=$PPID) result=NO-BECOME ;;
+(sudo|su|pbrun|pfexec|doas|dzdo|ksu) result="$1" ;;
+esac
+
+echo -n "$result"
