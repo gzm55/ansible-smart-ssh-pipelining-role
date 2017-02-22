@@ -32,7 +32,7 @@
     - ansible_connection: ssh
     - ansible_ssh_executable: "{{ role_path | quote }}/files/parse-become-method.sh"
     - ansible_become: True
-    - ansible_become_user: --FAKE::::USER={{ lookup('pipe', 'echo $PPID') }}
+    - ansible_become_user: root
     raw: --FAKE::::COMMAND={{ lookup('pipe', 'echo $PPID') }}
     failed_when: detect_become_method.stderr | d() != ''
     changed_when: False
@@ -116,7 +116,7 @@
     vars:
     - ansible_ssh_pipelining: True
     - ansible_become: True
-    - ansible_become_user: --FAKE::::USER={{ lookup('pipe', 'echo $PPID') }}
+    - ansible_become_user: root
     ping:
     failed_when: False
     changed_when: False
