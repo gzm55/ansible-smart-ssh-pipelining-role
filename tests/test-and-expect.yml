@@ -11,5 +11,8 @@
   - assert: { that: "ansible_ssh_pipelining == (expect_pipelining | d(True) | bool)" }
     when: ([inventory_hostname] | intersect(['testserverA', 'testserverC']) | list | length == 1)
 
-  - assert: { that: "ansible_ssh_pipelining == pre_status" }
-    when: ([inventory_hostname] | intersect(['testserverB', 'testserverD']) | list | length == 1)
+  - assert: { that: "ansible_ssh_pipelining == True" }
+    when: inventory_hostname == 'testserverB'
+
+  - assert: { that: "ansible_ssh_pipelining == False" }
+    when: inventory_hostname == 'testserverD'
