@@ -24,9 +24,6 @@ Python modules:
 - ansible >= 2.0
 - jinja2 >= 2.6
 
-Command:
-- sshpass (for passing a fake password to support the old version sudo command)
-
 Role Variables
 --------------
 
@@ -36,6 +33,7 @@ Dependencies
 ------------
 
 - `gzm55.local_ansible_config`
+- `gzm55.require_local_command`
 
 Example Playbook
 ----------------
