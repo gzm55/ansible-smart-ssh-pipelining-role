@@ -1,11 +1,6 @@
 ---
 - hosts: all
   gather_facts: False
-  pre_tasks:
-  - name: pre role status
-    set_fact:
-      pre_status_is_define: "{{ ansible_ssh_pipelining is defined }}"
-      pre_status: "{{ ansible_ssh_pipelining | d(False) }}"
 
   roles:
   - ansible-smart-ssh-pipelining-role
@@ -14,7 +9,7 @@
   - debug: msg="{{ 'post=' + ansible_ssh_pipelining | string }}"
 
   - assert: { that: "ansible_ssh_pipelining == (expect_pipelining | d(True) | bool)" }
-    when: not pre_status_is_define
+    when: ([inventory_hostname] | intersect(['testserverA', 'testserverC']) | list | length == 1)
 
   - assert: { that: "ansible_ssh_pipelining == pre_status" }
-    when: pre_status_is_define
+    when: ([inventory_hostname] | intersect(['testserverB', 'testserverD']) | list | length == 1)
