@@ -49,16 +49,20 @@
       register: detect_sudo_version
       vars:
       - raw_script: >-
-          {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=false;
+          {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=false
+          ;
           command -v {{ ansible_become_exe | d('sudo', True) | quote }}
-            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('&&', '; and') }}
-            {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=true;
+          {{ (ansible_shell_type | d('sh') != 'fish') | ternary('&&', '; and') }}
+          {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=true
+          ;
           which {{ ansible_become_exe | d('sudo', True) | quote }}
-            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('&&', '; and') }}
-            {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=true;
-          $have_sudo 
-            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('||', '; or') }}
-            exit 127;
+          {{ (ansible_shell_type | d('sh') != 'fish') | ternary('&&', '; and') }}
+          {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=true
+          ;
+          $have_sudo
+          {{ (ansible_shell_type | d('sh') != 'fish') | ternary('||', '; or') }}
+          exit 127
+          ;
           {{ ansible_become_exe | d('sudo', True) | quote }} -V
       raw: >
         {{ ( [ansible_shell_type | d('sh')]
