@@ -112,17 +112,17 @@
           | length > 0
     register: detect_pipelining
     become: True
-    become_user: "{{ (   (ansible_become_user | d('root', True) != 'root')
-                     and (ansible_become_user | d('root', True)) == (ansible_user | d(ansible_local_user, True))
+    become_user: "{{ (   (hostvars[inventory_hostname].ansible_become_user | d('root', True) != 'root')
+                     and (hostvars[inventory_hostname].ansible_become_user | d('root', True)) == (ansible_user | d(ansible_local_user, True))
                      )
-                     | ternary('root', ansible_become_user | d('root', True)) }}"
+                     | ternary('root', hostvars[inventory_hostname].ansible_become_user | d('root', True)) }}"
     vars:
     - ansible_ssh_pipelining: True
     - ansible_become: True
-    - ansible_become_user: "{{ (   (ansible_become_user | d('root', True) != 'root')
-                               and (ansible_become_user | d('root', True)) == (ansible_user | d(ansible_local_user, True))
+    - ansible_become_user: "{{ (   (hostvars[inventory_hostname].ansible_become_user | d('root', True) != 'root')
+                               and (hostvars[inventory_hostname].ansible_become_user | d('root', True)) == (ansible_user | d(ansible_local_user, True))
                                )
-                               | ternary('root', ansible_become_user | d('root', True)) }}"
+                               | ternary('root', hostvars[inventory_hostname].ansible_become_user | d('root', True)) }}"
     ping:
     failed_when: False
     changed_when: False
