@@ -33,7 +33,6 @@ Dependencies
 ------------
 
 - `gzm55.local_ansible_config`
-- `gzm55.require_local_command`
 
 Example Playbook
 ----------------
