@@ -48,18 +48,17 @@
     - name: detecting sudo version
       register: detect_sudo_version
       vars:
-      - ansible_become_flags: -V
-      - raw_script: |-
-          {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=false
-          command -v {{ ansible_become_exe | d('sudo', True) | quote }} \
-            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('&&', '; and') }} \
-            {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=true
-          which {{ ansible_become_exe | d('sudo', True) | quote }} \
-            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('&&', '; and') }} \
-            {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=true
-          $have_sudo \
-            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('||', '; or') }} \
-            exit 127
+      - raw_script: >-
+          {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=false;
+          command -v {{ ansible_become_exe | d('sudo', True) | quote }}
+            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('&&', '; and') }}
+            {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=true;
+          which {{ ansible_become_exe | d('sudo', True) | quote }}
+            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('&&', '; and') }}
+            {{ (ansible_shell_type | d('sh') != 'csh') | ternary('export', 'set') }} have_sudo=true;
+          $have_sudo 
+            {{ (ansible_shell_type | d('sh') != 'fish') | ternary('||', '; or') }}
+            exit 127;
           {{ ansible_become_exe | d('sudo', True) | quote }} -V
       raw: >
         {{ ( [ansible_shell_type | d('sh')]
@@ -82,10 +81,14 @@
                           | d('0.0', True) }}"
       when:
       - detect_sudo_version.rc == 0
-      - detect_sudo_version.stdout_lines
-        | select('match', 'Sudo version .*')
-        | list
-        | length >= 1
+      - (  detect_sudo_version.stdout_lines
+           | select('match', 'Sudo version .*')
+           | list
+           | length >= 1
+        or detect_sudo_version.stderr
+           | d('')
+           | search('sudo. (invalid|illegal) option')
+        )
       - (ansible_become_flags | d('-H -S -n', True))
         == (sudo_version
             | version_compare('1.7', '>=')
