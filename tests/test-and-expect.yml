@@ -1,5 +1,5 @@
 ---
-- hosts: testserverA
+- hosts: all
   gather_facts: False
 
   roles:

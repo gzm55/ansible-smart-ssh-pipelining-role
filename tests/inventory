@@ -1,2 +1,3 @@
 testserverA ansible_host=localhost ansible_port=4848 ansible_become=True
 testserverB ansible_host=localhost ansible_port=4848 ansible_ssh_pipelining=True
+testserverC ansible_host=localhost ansible_port=4848
