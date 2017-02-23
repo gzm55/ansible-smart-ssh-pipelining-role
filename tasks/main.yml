@@ -68,7 +68,7 @@
            | ternary(ansible_shell_executable, '/bin/sh')
            | quote
         }} -c {{ raw_script | quote }}
-      failed_when: False
+      failed_when: ( [ detect_sudo_version.rc ] | intersect([0, 1, 127]) | list | length == 0 )
       changed_when: False
 
     - name: update sudo flag
@@ -80,7 +80,7 @@
                           | regex_replace('^[^0-9]*', '')
                           | d('0.0', True) }}"
       when:
-      - detect_sudo_version.rc == 0
+      - detect_sudo_version.rc == 0 or detect_sudo_version.rc == 1
       - (  detect_sudo_version.stdout_lines
            | select('match', 'Sudo version .*')
            | list
@@ -89,10 +89,10 @@
            | d('')
            | search('sudo. (invalid|illegal) option')
         )
-      - (ansible_become_flags | d('-H -S -n', True))
-        == (sudo_version
-            | version_compare('1.7', '>=')
-            | ternary('-H -S', '-H -S -n')
+      - ( ansible_become_flags | d('-H -S -n', True) )
+        == ( sudo_version
+             | version_compare('1.7', '>=')
+             | ternary('-H -S', '-H -S -n') )
       set_fact:
         ansible_become_flags: "{{ sudo_version
                                   | version_compare('1.7', '>=')
