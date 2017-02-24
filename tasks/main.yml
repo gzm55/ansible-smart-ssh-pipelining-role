@@ -3,11 +3,16 @@
   run_once: True
   when:
   - inventory_hostname == ansible_play_hosts[0]
-  - groups.all
-    | map('extract', hostvars, 'ansible_become_method')
-    | reject('defined')
+  - ( [ groups.all
+        | map('extract', hostvars, 'ansible_become_method')
+        | unique
+        | map('d', omit ) ]
+    )
+    | difference([[omit]])
+    | first
+    | d([])
     | list
-    | length == 0
+    | length == 1
   connection: ssh
   vars:
   - ansible_connection: ssh
@@ -27,14 +32,14 @@
     when: ansible_become_method is not defined
     register: detect_become_method
     become: True
-    become_user: :fakeuser{{ lookup('pipe', 'echo $PPID') }}
+    become_user: :fakeuser{{ omit }}
     connection: ssh
     vars:
     - ansible_connection: ssh
     - ansible_ssh_executable: "{{ role_path | quote }}/files/parse-become-method.sh"
     - ansible_become: True
-    - ansible_become_user: :fakeuser{{ lookup('pipe', 'echo $PPID') }}
-    raw: --FAKE::::COMMAND={{ lookup('pipe', 'echo $PPID') }}
+    - ansible_become_user: :fakeuser{{ omit }}
+    raw: --FAKE::::COMMAND={{ omit }}
     failed_when: detect_become_method.stderr | d() != ''
     changed_when: False
 
