@@ -4,7 +4,7 @@
   when:
   - inventory_hostname == ansible_play_hosts[0]
   - ( [ groups.all
-        | map('extract', hostvars, 'ansible_become_method')
+        | map('extract', hostvars, 'ansible_ssh_executable')
         | unique
         | map('d', omit ) ]
     )
@@ -16,11 +16,11 @@
   connection: ssh
   vars:
   - ansible_connection: ssh
-  - ansible_ssh_executable: "{{ role_path }}/files/dump-ssh-opts.sh"
+  - ansible_ssh_executable: "{{ omit }}"
   assert:
     that:
     - "[ansible_connection] | intersect(['ssh', 'smart']) | list | length == 1"
-    - "ansible_ssh_executable == (role_path + '/files/dump-ssh-opts.sh')"
+    - "ansible_ssh_executable == omit"
 
 - name: save inventory ssh pipelining status
   when: ansible_inventory_ssh_pipelining_is_not_defined is not defined
