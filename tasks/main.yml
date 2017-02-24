@@ -3,11 +3,11 @@
   run_once: True
   when:
   - inventory_hostname == ansible_play_hosts[0]
-  - ansible_play_hosts_all
-    | map('extract', hostvars)
-    | rejectattr('ansible_become_method', 'defined')
+  - groups.all
+    | map('extract', hostvars, 'ansible_become_method')
+    | reject('defined')
     | list
-    | length > 0
+    | length == 0
   connection: ssh
   vars:
   - ansible_connection: ssh
