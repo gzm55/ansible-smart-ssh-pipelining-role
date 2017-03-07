@@ -21,7 +21,7 @@ Requirements
 ------------
 
 Python modules:
-- ansible >= 2.0
+- ansible >= 2.2
 - jinja2 >= 2.6
 
 Role Variables
