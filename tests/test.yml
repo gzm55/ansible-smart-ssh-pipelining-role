@@ -13,5 +13,7 @@
   - name: post role status
     set_fact:
       post_status: "{{ ansible_ssh_pipelining }}"
-  - debug: msg="{{[ 'pre=' + pre_status | string, 'post=' + post_status | string]}}"
-  - assert: { that: "pre_status == post_status" }
+  - name: print post status
+    debug: msg="{{[ 'pre=' + pre_status | string, 'post=' + post_status | string]}}"
+  - name: check post status
+    assert: { that: "pre_status == post_status" }

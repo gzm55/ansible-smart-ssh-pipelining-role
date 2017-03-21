@@ -45,7 +45,7 @@
 
   ## check sudo flags for old version
   ## when the become method is sudo, we will check for every remote machine:
-  ##   0. have a sudo with -n option: keep default sudo flags;
+  ##   0. have a sudo with -n option (since 1.7): keep default sudo flags;
   ##   1. have a sudo without -n option: remove -n from default sudo flags;
   ##   2. no sudo command, do nothing.
   - block:
@@ -134,3 +134,7 @@
   - ansible_inventory_ssh_pipelining_is_not_defined
   - lookup('env', 'ANSIBLE_SSH_PIPELINING') == ''
   - local_ansible_config['ssh_connection/pipelining'] is not defined
+  - ([ansible_connection | d('smart')])
+    | intersect(['ssh', 'smart', 'chroot', 'local', 'lxc', 'libvirt_lxc', 'lxd', 'docker', 'zone', 'jail'])
+    | list
+    | length == 1

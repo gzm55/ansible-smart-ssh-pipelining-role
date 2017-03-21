@@ -2,3 +2,4 @@ testserverA ansible_host=localhost ansible_port=4848 ansible_become=True
 testserverB ansible_host=localhost ansible_port=4848 ansible_ssh_pipelining=True
 testserverC ansible_host=localhost ansible_port=4848
 testserverD ansible_host=localhost ansible_port=4848 ansible_ssh_pipelining=False
+testserverE ansible_host=alpine-sshd ansible_connection=docker ansible_become=True
