@@ -1,55 +1,60 @@
 ---
-- name: override ssh ansible_ssh_executable
+- name: detect pipelining config origin
   run_once: True
   when:
   - inventory_hostname == ansible_play_hosts[0]
-  - ( [ groups.all
-        | map('extract', hostvars, 'ansible_ssh_executable')
-        | unique
-        | map('d', omit ) ]
-    )
-    | difference([[omit]])
-    | first
-    | d([])
-    | list
-    | length == 1
-  connection: ssh
-  vars:
-  - ansible_connection: ssh
-  - ansible_ssh_executable: "{{ omit }}"
-  assert:
-    that:
-    - "[ansible_connection] | intersect(['ssh', 'smart']) | list | length == 1"
-    - "ansible_ssh_executable == omit"
+  - pipelining_config_origin is not defined
+  register: pipelining_config_origin
+  pipelining_config_origin:
 
 - name: save inventory ssh pipelining status
-  when: ansible_inventory_ssh_pipelining_is_not_defined is not defined
+  when:
+  - pipelining_config_origin.msg | d == 'default'
+  - ansible_pipelining_is_not_defined is not defined
   set_fact:
-    ansible_inventory_ssh_pipelining_is_not_defined: "{{ hostvars[inventory_hostname].ansible_ssh_pipelining is not defined }}"
+    ansible_pipelining_is_not_defined: "{{
+      hostvars[inventory_hostname].ansible_ssh_pipelining is not defined
+      and
+      hostvars[inventory_hostname].ansible_pipelining is not defined
+      }}"
 
-- block:
-  - name: parse become method
-    when: ansible_become_method is not defined
-    register: detect_become_method
-    become: True
-    become_user: :fakeuser{{ omit }}
-    connection: ssh
-    vars:
-    - ansible_connection: ssh
-    - ansible_ssh_executable: "{{ role_path | quote }}/files/parse-become-method.sh"
-    - ansible_become: True
-    - ansible_become_user: :fakeuser{{ omit }}
-    raw: --FAKE::::COMMAND={{ omit }}
-    failed_when: detect_become_method.stderr | d() != ''
-    changed_when: False
+  ## generate connection plugins with pipelining:
+  ##   ag -l 'has_pipelining\s*=\s*True' lib/ansible/plugins/connection \
+  ##   | awk -vFS="[./]" '{print $5}' \
+  ##   | sort -u \
+  ##   | printf "'%s'" $(cat) \
+  ##   | sed "s/''/', '/g"
+
+- name: only when pipelining is not defined, and connection supports pipelining
+  become: False
+  become_user: "{{ ansible_user | d(omit) }}"
+  vars:
+    ansible_become: False
+    ansible_become_user: "{{ ansible_user | d(omit) }}"
+  when:
+  - pipelining_config_origin.msg | d == 'default'
+  - ansible_pipelining_is_not_defined
+  - ([ansible_connection | d('ssh')])
+    | intersect(['smart'] + ['buildah', 'chroot', 'docker', 'httpapi', 'jail', 'kubectl', 'libvirt_lxc', 'local',
+                             'lxc', 'lxd', 'network_cli', 'psrp', 'qubes', 'ssh', 'winrm', 'zone'])
+    | list
+    | length == 1
+  block:
+
+  - name: detect become method
+    register: current_become_method
+    detect_become_method:
 
   ## check sudo flags for old version
   ## when the become method is sudo, we will check for every remote machine:
   ##   0. have a sudo with -n option (since 1.7): keep default sudo flags;
   ##   1. have a sudo without -n option: remove -n from default sudo flags;
   ##   2. no sudo command, do nothing.
-  - block:
-
+  - name: correct sudo flags
+    when:
+    - current_become_method.msg | d('sudo', True) == 'sudo'
+    - ( [ ansible_become_flags | d('-H -S -n', True) ] ) | intersect(['-H -S', '-H -S -n']) | list | length == 1
+    block:
     - name: detecting sudo version
       register: detect_sudo_version
       become: False
@@ -58,13 +63,12 @@
       raw: "{{ ansible_become_exe | d('sudo', True) | quote }} -V"
       failed_when: ( [ detect_sudo_version.rc ] | intersect([0, 1, 127]) | list | length == 0 )
       changed_when: False
-
     - name: update sudo flag
       vars:
       - sudo_version: "{{ detect_sudo_version.stdout_lines
                           | select('match', 'Sudo version .*')
                           | first
-                          | d('')
+                          | d
                           | regex_replace('^[^0-9]*', '')
                           | d('0.0', True) }}"
       when:
@@ -74,7 +78,7 @@
            | list
            | length >= 1
         or detect_sudo_version.stderr
-           | d('')
+           | d
            | search('sudo. (invalid|illegal) option')
         )
       - ( ansible_become_flags | d('-H -S -n', True) )
@@ -82,30 +86,21 @@
       set_fact:
         ansible_become_flags: "{{ sudo_version | version_compare('1.7', '>=') | ternary('', '-H -S') }}"
 
-    when:
-    - ansible_version.full | version_compare('2.2', '>=')
-    - ansible_become_method | d(detect_become_method.stdout) | d('sudo', True) == 'sudo'
-    - ( [ ansible_become_flags | d('-H -S -n', True) ] | intersect(['-H -S', '-H -S -n']) | list | length == 1 )
-
-  ## NOTE: When become method is 'su', it will ignore ansible_ssh_pipelining,
-  ##       so only detect for 'sudo' and unknown methods,
-  ##       and enable ssh pipelining for all other known methods.
+  ## NOTE: When become method is 'su', it will ignore ansible_pipelining,
+  ##       so only detect for 'sudo' methods,
+  ##       and enable ssh pipelining for all other become methods.
   ##
   ## NOTE: Having remote hosts without 'sudo' command,
   ##       or become flags containing invalid options, we also enable pipelining,
   ##       cause a become-task will always fail in this scenario.
-  ##
-  ## TODO: support custom ansible_become_exe
   - name: detecting
-    when: ([ ansible_become_method | d(detect_become_method.stdout) | d('sudo', True) ])
-          | intersect(['sudo', 'UNKNOWN-BECOME-METHOD'])
-          | list
-          | length > 0
+    when: current_become_method.msg | d('sudo', True) == 'sudo'
     register: detect_pipelining
     become: True
     become_user: root
     vars:
     - ansible_ssh_pipelining: True
+    - ansible_pipelining: True
     - ansible_become: True
     - ansible_become_user: root
     - ansible_become_pass: .
@@ -116,25 +111,13 @@
 
   - name: flipping
     vars:
-    - detect_string: "{{ (detect_pipelining.module_stdout | d()) + '\n' + (detect_pipelining.module_stderr | d()) }}"
-    when: ansible_ssh_pipelining != (
-            [ ansible_become_method | d(detect_become_method.stdout) | d('sudo', True) ]
-            | intersect(['sudo', 'UNKNOWN-BECOME-METHOD'])
-            | list
-            | length == 0
+    - detect_string: "{{ (detect_pipelining.module_stdout | d) + '\n' + (detect_pipelining.module_stderr | d) }}"
+    when: ansible_pipelining != (
+            current_become_method.msg | d('sudo', True) != 'sudo'
             or
             ( detect_string.find('must have a tty') == -1 and
               detect_string.find('no tty present') == -1
             )
           )
     set_fact:
-      ansible_ssh_pipelining: "{{ not ansible_ssh_pipelining }}"
-
-  when:
-  - ansible_inventory_ssh_pipelining_is_not_defined
-  - lookup('env', 'ANSIBLE_SSH_PIPELINING') == ''
-  - local_ansible_config['ssh_connection/pipelining'] is not defined
-  - ([ansible_connection | d('smart')])
-    | intersect(['ssh', 'smart', 'chroot', 'local', 'lxc', 'libvirt_lxc', 'lxd', 'docker', 'zone', 'jail'])
-    | list
-    | length == 1
+      ansible_pipelining: "{{ not ansible_pipelining }}"
