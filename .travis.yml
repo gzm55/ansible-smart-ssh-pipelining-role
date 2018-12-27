@@ -26,7 +26,6 @@ install:
 
   # Install python module and role dependencies
   - test -f requirements.txt && pip install -r requirements.txt
-  - test -f requirements.yml && ansible-galaxy install -p tests/roles -r requirements.yml
 
   # Start a sshd container for testing
   # - listen on localhost:4848
