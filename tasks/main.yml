@@ -57,7 +57,7 @@
       vars:
         ansible_become: False
         ansible_become_user: "{{ current_play_context.remote_user | d(None) }}"
-        ansible_user: "{{ current_play_context.remote_user is defined | ternary(omit, None) }}"
+        #ansible_user: "{{ current_play_context.remote_user is defined | ternary(omit, None) }}"
       raw: "{{ current_play_context.become_exe | quote }} -V"
       failed_when: ( [ detect_sudo_version.rc ] ) | intersect([0, 1, 127]) | list | length == 0
       changed_when: False
