@@ -18,6 +18,13 @@
       hostvars[inventory_hostname].ansible_pipelining is not defined
       }}"
 
+- name: save play context
+  when:
+  - pipelining_config_origin.msg | d == 'default'
+  - ansible_pipelining_is_not_defined | d
+  register: current_play_context
+  current_play_context:
+
   ## generate connection plugins with pipelining:
   ##   ag -l 'has_pipelining\s*=\s*True' lib/ansible/plugins/connection \
   ##   | awk -vFS="[./]" '{print $5}' \
@@ -26,24 +33,14 @@
   ##   | sed "s/''/', '/g"
 
 - name: only when pipelining is not defined, and connection supports pipelining
-  become: False
-  become_user: "{{ ansible_user | d(omit) }}"
-  vars:
-    ansible_become: False
-    ansible_become_user: "{{ ansible_user | d(omit) }}"
   when:
-  - pipelining_config_origin.msg | d == 'default'
-  - ansible_pipelining_is_not_defined
-  - ([ansible_connection | d('ssh')])
-    | intersect(['smart'] + ['buildah', 'chroot', 'docker', 'httpapi', 'jail', 'kubectl', 'libvirt_lxc', 'local',
-                             'lxc', 'lxd', 'network_cli', 'psrp', 'qubes', 'ssh', 'winrm', 'zone'])
+  - current_play_context is defined
+  - ([current_play_context.become_method])
+    | intersect(['buildah', 'chroot', 'docker', 'httpapi', 'jail', 'kubectl', 'libvirt_lxc', 'local',
+                 'lxc', 'lxd', 'network_cli', 'psrp', 'qubes', 'ssh', 'winrm', 'zone'])
     | list
-    | length == 1
+    | length
   block:
-
-  - name: detect become method
-    register: current_become_method
-    detect_become_method:
 
   ## check sudo flags for old version
   ## when the become method is sudo, we will check for every remote machine:
@@ -52,16 +49,17 @@
   ##   2. no sudo command, do nothing.
   - name: correct sudo flags
     when:
-    - current_become_method.msg | d('sudo', True) == 'sudo'
-    - ( [ ansible_become_flags | d('-H -S -n', True) ] ) | intersect(['-H -S', '-H -S -n']) | list | length == 1
+    - current_play_context.become_method == 'sudo'
+    - ( [ current_play_context.become_flags | trim ] ) | intersect(['-H -S -n', '-H -S']) | list | length
     block:
     - name: detecting sudo version
       register: detect_sudo_version
-      become: False
       vars:
-      - ansible_become: False
-      raw: "{{ ansible_become_exe | d('sudo', True) | quote }} -V"
-      failed_when: ( [ detect_sudo_version.rc ] | intersect([0, 1, 127]) | list | length == 0 )
+        ansible_become: False
+        ansible_become_user: "{{ current_play_context.remote_user | d(None) }}"
+        ansible_user: "{{ current_play_context.remote_user is defined | ternary(omit, None) }}"
+      raw: "{{ current_play_context.become_exe | quote }} -V"
+      failed_when: ( [ detect_sudo_version.rc ] ) | intersect([0, 1, 127]) | list | length == 0
       changed_when: False
     - name: update sudo flag
       vars:
@@ -71,20 +69,20 @@
                           | d
                           | regex_replace('^[^0-9]*', '')
                           | d('0.0', True) }}"
+      - expect_flags: "{{ (sudo_version is version_compare('1.7', '>=')) | ternary('-H -S -n', '-H -S') }}"
       when:
       - detect_sudo_version.rc == 0 or detect_sudo_version.rc == 1
       - (  detect_sudo_version.stdout_lines
            | select('match', 'Sudo version .*')
            | list
-           | length >= 1
+           | length
         or detect_sudo_version.stderr
            | d
            | search('sudo. (invalid|illegal) option')
         )
-      - ( ansible_become_flags | d('-H -S -n', True) )
-        == ( sudo_version | version_compare('1.7', '>=') | ternary('-H -S', '-H -S -n') )
+      - current_play_context.become_flags | trim != expect_flags
       set_fact:
-        ansible_become_flags: "{{ sudo_version | version_compare('1.7', '>=') | ternary('', '-H -S') }}"
+        ansible_become_flags: "{{  expect_flags }}"
 
   ## NOTE: When become method is 'su', it will ignore ansible_pipelining,
   ##       so only detect for 'sudo' methods,
@@ -94,10 +92,8 @@
   ##       or become flags containing invalid options, we also enable pipelining,
   ##       cause a become-task will always fail in this scenario.
   - name: detecting
-    when: current_become_method.msg | d('sudo', True) == 'sudo'
+    when: current_play_context.become_method == 'sudo'
     register: detect_pipelining
-    become: True
-    become_user: root
     vars:
     - ansible_ssh_pipelining: True
     - ansible_pipelining: True
@@ -109,11 +105,11 @@
     changed_when: False
     ignore_errors: True
 
-  - name: flipping
+  - name: flipping pipelining
     vars:
     - detect_string: "{{ (detect_pipelining.module_stdout | d) + '\n' + (detect_pipelining.module_stderr | d) }}"
     when: ansible_pipelining != (
-            current_become_method.msg | d('sudo', True) != 'sudo'
+            current_play_context.become_method != 'sudo'
             or
             ( detect_string.find('must have a tty') == -1 and
               detect_string.find('no tty present') == -1
