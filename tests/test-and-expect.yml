@@ -14,9 +14,9 @@
     when: ([inventory_hostname] | intersect(['testserverA', 'testserverC', 'testserverE']) | list | length == 1)
 
   - name: check post status for testserverB
-    assert: { that: "ansible_ssh_pipelining == True" }
+    assert: { that: "ansible_ssh_pipelining" }
     when: inventory_hostname == 'testserverB'
 
   - name: check post status for testserverD
-    assert: { that: "ansible_ssh_pipelining == False" }
+    assert: { that: "not ansible_ssh_pipelining" }
     when: inventory_hostname == 'testserverD'

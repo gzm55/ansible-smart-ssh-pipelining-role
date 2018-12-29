@@ -14,6 +14,6 @@
     set_fact:
       post_status: "{{ ansible_ssh_pipelining }}"
   - name: print post status
-    debug: msg="{{[ 'pre=' + pre_status | string, 'post=' + post_status | string]}}"
+    debug: msg="{{ [ 'pre=' + pre_status | string, 'post=' + post_status | string ] }}"
   - name: check post status
     assert: { that: "pre_status == post_status" }
