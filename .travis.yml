@@ -16,7 +16,7 @@ addons:
     - sshpass
 
 install:
-  - which ssh-keygen && which ssh-agent && which ssh-add && which sshpass
+  - which ssh && which ssh-keygen && which ssh-agent && which ssh-add && which sshpass
 
   # Install ansible
   - pip install ansible ansible-lint
@@ -43,8 +43,8 @@ install:
   - docker exec -i alpine-sshd sh -c 'su -c "cd; umask 077; mkdir -p .ssh; touch .ssh/known_hosts" userA'
   - docker exec -i alpine-sshd sh -c 'cat ~/.ssh/authorized_keys >> /home/userA/.ssh/authorized_keys'
   - ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:4848 || true
-  - sleep 1 && ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
-  - ssh -C -o Port=4848 -o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -tt localhost echo 'sshd works'
+  - sleep 2 && ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
+  - ssh -vvv -C -o Port=4848 -o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -tt localhost echo 'sshd works'
 
   - export ANSIBLE_ROLES_PATH=$PWD/..
 
