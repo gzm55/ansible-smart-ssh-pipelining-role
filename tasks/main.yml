@@ -34,7 +34,7 @@
 
 - name: only when pipelining is not defined, and connection supports pipelining
   when:
-  - current_play_context is defined
+  - current_play_context is not skipped
   - ([current_play_context.become_method])
     | intersect(['buildah', 'chroot', 'docker', 'httpapi', 'jail', 'kubectl', 'libvirt_lxc', 'local',
                  'lxc', 'lxd', 'network_cli', 'psrp', 'qubes', 'ssh', 'winrm', 'zone'])
@@ -49,7 +49,6 @@
   ##   2. no sudo command, do nothing.
   - name: correct sudo flags
     when:
-    - current_play_context is defined
     - current_play_context.become_method == 'sudo'
     - ( [ current_play_context.become_flags | trim ] ) | intersect(['-H -S -n', '-H -S']) | list | length
     block:
@@ -72,7 +71,7 @@
                           | d('0.0', True) }}"
       - expect_flags: "{{ (sudo_version is version_compare('1.7', '>=')) | ternary('-H -S -n', '-H -S') }}"
       when:
-      - detect_sudo_version is defined
+      - detect_sudo_version is not skipped
       - detect_sudo_version.rc == 0 or detect_sudo_version.rc == 1
       - (  detect_sudo_version.stdout_lines
            | select('match', 'Sudo version .*')
@@ -82,7 +81,7 @@
            | d
            | search('sudo. (invalid|illegal) option')
         )
-      - current_play_context is defined
+      - current_play_context is not skipped
       - current_play_context.become_flags | trim != expect_flags
       set_fact:
         ansible_become_flags: "{{  expect_flags }}"
@@ -96,7 +95,7 @@
   ##       cause a become-task will always fail in this scenario.
   - name: detecting
     when:
-    - current_play_context is defined
+    - current_play_context is not skipped
     - current_play_context.become_method == 'sudo'
     register: detect_pipelining
     vars:
@@ -114,8 +113,8 @@
     vars:
     - detect_string: "{{ (detect_pipelining.module_stdout | d) + '\n' + (detect_pipelining.module_stderr | d) }}"
     when:
-    - current_play_context is defined
-    - detect_pipelining is defined
+    - current_play_context is not skipped
+    - detect_pipelining is not skipped
     - ansible_pipelining != (
         current_play_context.become_method != 'sudo'
         or
