@@ -49,6 +49,7 @@
   ##   2. no sudo command, do nothing.
   - name: correct sudo flags
     when:
+    - current_play_context is defined
     - current_play_context.become_method == 'sudo'
     - ( [ current_play_context.become_flags | trim ] ) | intersect(['-H -S -n', '-H -S']) | list | length
     block:
@@ -71,6 +72,7 @@
                           | d('0.0', True) }}"
       - expect_flags: "{{ (sudo_version is version_compare('1.7', '>=')) | ternary('-H -S -n', '-H -S') }}"
       when:
+      - detect_sudo_version is defined
       - detect_sudo_version.rc == 0 or detect_sudo_version.rc == 1
       - (  detect_sudo_version.stdout_lines
            | select('match', 'Sudo version .*')
@@ -80,6 +82,7 @@
            | d
            | search('sudo. (invalid|illegal) option')
         )
+      - current_play_context is defined
       - current_play_context.become_flags | trim != expect_flags
       set_fact:
         ansible_become_flags: "{{  expect_flags }}"
@@ -92,7 +95,9 @@
   ##       or become flags containing invalid options, we also enable pipelining,
   ##       cause a become-task will always fail in this scenario.
   - name: detecting
-    when: current_play_context.become_method == 'sudo'
+    when:
+    - current_play_context is defined
+    - current_play_context.become_method == 'sudo'
     register: detect_pipelining
     vars:
     - ansible_ssh_pipelining: True
@@ -108,12 +113,15 @@
   - name: flipping pipelining
     vars:
     - detect_string: "{{ (detect_pipelining.module_stdout | d) + '\n' + (detect_pipelining.module_stderr | d) }}"
-    when: ansible_pipelining != (
-            current_play_context.become_method != 'sudo'
-            or
-            ( detect_string.find('must have a tty') == -1 and
-              detect_string.find('no tty present') == -1
-            )
-          )
+    when:
+    - current_play_context is defined
+    - detect_pipelining is defined
+    - ansible_pipelining != (
+        current_play_context.become_method != 'sudo'
+        or
+        ( detect_string.find('must have a tty') == -1 and
+          detect_string.find('no tty present') == -1
+        )
+      )
     set_fact:
       ansible_pipelining: "{{ not ansible_pipelining }}"
