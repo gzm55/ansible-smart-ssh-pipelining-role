@@ -46,7 +46,7 @@ install:
   - sleep 2 && ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
   - docker exec -i alpine-sshd sh -c 'su -c "ls -alh ~; ls -alh ~/.ssh; cat ~/.ssh/authorized_keys" userA'
   - cat ~/.ssh/id_rsa.pub
-  - ssh -vvv -C -o Port=4848 -o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -tt localhost echo 'sshd works'
+  - ssh -vvv -C -o Port=4848 -o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -tt userA@localhost echo 'sshd works'
 
   - export ANSIBLE_ROLES_PATH=$PWD/..
 
