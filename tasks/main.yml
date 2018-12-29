@@ -111,7 +111,6 @@
     vars:
     - detect_string: "{{ (detect_pipelining.module_stdout | d) + '\n' + (detect_pipelining.module_stderr | d) }}"
     when:
-    - detect_pipelining is not skipped
     - ansible_pipelining != (
         current_play_context.become_method != 'sudo'
         or
