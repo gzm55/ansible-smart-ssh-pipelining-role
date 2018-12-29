@@ -44,6 +44,7 @@ install:
   - docker exec -i alpine-sshd sh -c 'cat ~/.ssh/authorized_keys >> /home/userA/.ssh/authorized_keys'
   - ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:4848 || true
   - sleep 1 && ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
+  - ssh -C -o Port=4848 -o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -tt localhost echo 'sshd works'
 
   - export ANSIBLE_ROLES_PATH=$PWD/..
 
