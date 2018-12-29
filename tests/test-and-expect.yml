@@ -11,7 +11,7 @@
 
   - name: check post status
     assert: { that: "ansible_ssh_pipelining == (expect_pipelining | d(True) | bool)" }
-    when: ([inventory_hostname] | intersect(['testserverA', 'testserverC', 'testserverE']) | list | length == 1)
+    when: ([inventory_hostname]) | intersect(['testserverA', 'testserverC', 'testserverE']) | list | length
 
   - name: check post status for testserverB
     assert: { that: "ansible_ssh_pipelining" }
