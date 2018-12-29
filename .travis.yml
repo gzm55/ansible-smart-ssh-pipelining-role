@@ -41,7 +41,7 @@ install:
   - ssh-keygen -N '' -f ~/.ssh/id_rsa
   - cat ~/.ssh/id_rsa.pub | docker exec -i alpine-sshd sh -c 'cd; umask 077; mkdir -p .ssh; cat >> .ssh/authorized_keys'
   - docker exec -i alpine-sshd sh -c 'su -c "cd; umask 077; mkdir -p .ssh; touch .ssh/known_hosts" userA'
-  - docker exec -i alpine-sshd sh -c 'cat ~/.ssh/authorized_keys >> /home/userA/.ssh/authorized_keys'
+  - docker exec -i alpine-sshd sh -c 'cat ~/.ssh/authorized_keys >> /home/userA/.ssh/authorized_keys; ls -alh /home/userA/.ssh; cat /home/userA/.ssh/authorized_keys'
   - ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:4848 || true
   - sleep 2 && ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
   - ssh -vvv -C -o Port=4848 -o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -tt localhost echo 'sshd works'
