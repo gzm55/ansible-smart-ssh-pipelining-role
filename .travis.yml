@@ -66,7 +66,7 @@ script:
   - ANSIBLE_SSH_PIPELINING=False ansible-playbook tests/test.yml -i tests/inventory
 
   - echo =====[round 2][no sudo command]=====
-  - ansible-playbook tests/test-and-expect.yml -vvv -i tests/inventory --user userA -e expect_pipelining=True
+  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True
 
   - echo =====[round 3][sudo + requiretty]=====
   - docker exec -i alpine-sshd sh -c 'apk add sudo; echo "Defaults requiretty" >/etc/sudoers.d/reqtty'
@@ -80,7 +80,7 @@ script:
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method su --become
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method pbrun
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method pfexec
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method doas
+  - ansible-playbook tests/test-and-expect.yml -vvv -i tests/inventory --user userA -e expect_pipelining=True --become-method doas
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method dzdo
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method ksu
 
