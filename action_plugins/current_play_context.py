@@ -40,7 +40,7 @@ class ActionModule(ActionBase):
           if not ctx.become_pass:
             become_flags += ' -n '
           if ctx.become_user:
-            flags += ' -u %s ' % ctx.become_user
+            become_flags += ' -u %s ' % ctx.become_user
         result['become_flags'] = become_flags
 
         result['changed'] = False
