@@ -1,28 +1,30 @@
-smart_ssh_pipelining
-====================
+smart_ssh_pipelining (1.0.0-dev)
+================================
 
-Try to detect and enable ssh pipeling if needed, and the `ansible_ssh_pipelining` fact.
-If the following conditions are matched, the role will skip detecting for the hosts:
+Try to detect and enable ssh pipelining if needed, and set the `ansible_ssh_pipelining` fact.
+If any one of the following conditions are matched, the role will skip detecting for the hosts:
 - set inventory variable: `ansible_ssh_pipelining`;
-- set `pipelining` in the effective ansible.cfg;
-- `ANSIBLE_SSH_PIPELINING` environment is not empty.
+- or set `pipelining` in the effective ansible.cfg;
+- or `ANSIBLE_SSH_PIPELINING` environment is not empty.
 
-Each time you changing the become method or the become flag or change the requiretty in sudoers config,
+Each time you chang the become method/flag or the requiretty in sudoers config,
 this role can be re-inclued to reflect the correct pipelining status.
 
-When become method is 'su', ansible will ignore ansible_ssh_pipelining, so only detect for 'sudo',
-and enable ssh pipelining for all other meghods. Having a remote host without 'sudo' command,
+When become method is not 'sudo', ansible will ignore `ansible_ssh_pipelining`. So only detect for 'sudo',
+and enable ssh pipelining for all other methods. Having a remote host without 'sudo' command,
 we also enable pipelining, cause a become-task will always fail in this scenario.
 
-This role does not require remote machines having a python executable,
+This role _does not_ require remote machines having a python executable,
 and can be safely used before seeding the machines.
 
 Requirements
 ------------
 
 Python modules:
-- ansible >= 2.2
+- ansible >= 2.5
 - jinja2 >= 2.6
+
+For ansible `[2.2, 2.5)`, use `smart_ssh_pipelining 0.0.1`.
 
 Role Variables
 --------------
@@ -32,12 +34,10 @@ N/A
 Dependencies
 ------------
 
-- `gzm55.local_ansible_config`
+N/A
 
 Example Playbook
 ----------------
-
-Including an example of how to use your role (for instance, with variables passed in as parameters) is always nice for users too:
 
     - hosts: servers
       roles:
