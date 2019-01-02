@@ -23,7 +23,7 @@
   - pipelining_config_origin.msg | d == 'default'
   - ansible_pipelining_is_not_defined | d
   register: current_play_context
-  current_play_context:
+  current_play_context_pipelining:
 
   ## generate connection plugins with pipelining:
   ##   ag -l 'has_pipelining\s*=\s*True' lib/ansible/plugins/connection \
