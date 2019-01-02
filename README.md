@@ -1,4 +1,4 @@
-smart_ssh_pipelining (1.0.0-dev)
+smart_ssh_pipelining (1.0.0)
 ================================
 
 Try to detect and enable ssh pipelining if needed, and set the `ansible_ssh_pipelining` fact.
