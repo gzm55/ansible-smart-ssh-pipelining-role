@@ -38,8 +38,6 @@
   - ([current_play_context.connection])
     | intersect(['buildah', 'chroot', 'docker', 'httpapi', 'jail', 'kubectl', 'libvirt_lxc', 'local',
                  'lxc', 'lxd', 'network_cli', 'psrp', 'qubes', 'ssh', 'winrm', 'zone'])
-    | list
-    | length
   block:
 
   ## check sudo flags for old version
@@ -50,7 +48,7 @@
   - name: correct sudo flags
     when:
     - current_play_context.become_method == 'sudo'
-    - ( [ current_play_context.become_flags | trim ] ) | intersect(['-H -S -n', '-H -S']) | list | length
+    - ( [ current_play_context.become_flags | trim ] ) | intersect(['-H -S -n', '-H -S'])
     block:
     - name: detecting sudo version
       register: detect_sudo_version
@@ -58,7 +56,7 @@
         ansible_become: False
         ansible_become_user: "{{ current_play_context.remote_user | d(None) }}"
       raw: "{{ current_play_context.become_exe | quote }} -V"
-      failed_when: ( [ detect_sudo_version.rc ] ) | intersect([0, 1, 127]) | list | length == 0
+      failed_when: not [ detect_sudo_version.rc ] | intersect([0, 1, 127])
       changed_when: False
     - name: update sudo flag
       vars:
@@ -72,14 +70,8 @@
       when:
       - detect_sudo_version is not skipped
       - detect_sudo_version.rc == 0 or detect_sudo_version.rc == 1
-      - (  detect_sudo_version.stdout_lines
-           | select('match', 'Sudo version .*')
-           | list
-           | length
-        or detect_sudo_version.stderr
-           | d
-           | search('sudo. (invalid|illegal) option')
-        )
+      - (  detect_sudo_version.stdout_lines | select('match', 'Sudo version .*')
+        or detect_sudo_version.stderr | d | search('sudo. (invalid|illegal) option') )
       - current_play_context.become_flags | trim != expect_flags
       set_fact:
         ansible_become_flags: "{{  expect_flags }}"
