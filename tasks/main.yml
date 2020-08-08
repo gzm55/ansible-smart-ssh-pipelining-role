@@ -94,14 +94,18 @@
     - ansible_become_pass: .
     - ansible_python_interpreter: fake-python
     ping:
+    # Pipelining detecting requires python module to not allocate pysudo-tty,
+    # so we cannot use the raw module. Override ansible_python_interpreter to avoid
+    # Python interpreter discovery.
+    # This becomed task will always fail on the becoming step, so the python interpreter will
+    # not be executed at all.
     failed_when: False
     changed_when: False
     ignore_errors: True
 
   - name: flipping pipelining
     vars:
-            #- detect_string: "{{ (detect_pipelining.module_stdout | d) + '\n' + (detect_pipelining.module_stderr | d) }}"
-    - detect_string: "{{ [detect_pipelining.module_stdout, detect_pipelining.module_stderr, detect_pipelining.msg] | map('d') | join('\n') }}"
+    - detect_string: "{{ [detect_pipelining.module_stdout, detect_pipelining.module_stderr, detect_pipelining.msg] | select('defined') | join('\n') }}"
     when:
     - ansible_pipelining != (
         current_play_context.become_method != 'sudo'
