@@ -1,8 +1,11 @@
 ---
-language: python
-python: "2.7"
+os: linux
+dist: xenial
 
-sudo: required
+language: python
+python:
+- 2.7
+- 3.5
 
 # Use the docker for testing
 services:
@@ -66,6 +69,7 @@ script:
   - ANSIBLE_SSH_PIPELINING=False ansible-playbook tests/test.yml -i tests/inventory
 
   - echo =====[round 2][no sudo command]=====
+  - docker exec -i alpine-sshd sh -c '! command -v sudo || apk del sudo'
   - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True
 
   - echo =====[round 3][sudo + requiretty]=====
