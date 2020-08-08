@@ -2,7 +2,6 @@
 - name: detect pipelining config origin
   run_once: True
   when:
-  - inventory_hostname == ansible_play_hosts[0]
   - pipelining_config_origin is not defined
   register: pipelining_config_origin
   pipelining_config_origin:
@@ -93,21 +92,19 @@
     - ansible_become: True
     - ansible_become_user: root
     - ansible_become_pass: .
-    ping:
+    raw: exit
     failed_when: False
     changed_when: False
     ignore_errors: True
 
   - name: flipping pipelining
     vars:
-    - detect_string: "{{ (detect_pipelining.module_stdout | d) + '\n' + (detect_pipelining.module_stderr | d) }}"
+    - detect_string: "{{ (detect_pipelining.stdout | d) + '\n' + (detect_pipelining.stderr | d) }}"
     when:
     - ansible_pipelining != (
         current_play_context.become_method != 'sudo'
         or
-        ( detect_string.find('must have a tty') == -1 and
-          detect_string.find('no tty present') == -1
-        )
+        ( detect_string is not search('must have a tty') and detect_string is not search('no tty present') )
       )
     set_fact:
       ansible_pipelining: "{{ not ansible_pipelining }}"
