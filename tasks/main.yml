@@ -66,12 +66,12 @@
                           | d
                           | regex_replace('^[^0-9]*', '')
                           | d('0.0', True) }}"
-      - expect_flags: "{{ (sudo_version is version_compare('1.7', '>=')) | ternary('-H -S -n', '-H -S') }}"
+      - expect_flags: "{{ (sudo_version is version('1.7', '>=')) | ternary('-H -S -n', '-H -S') }}"
       when:
       - detect_sudo_version is not skipped
       - detect_sudo_version.rc == 0 or detect_sudo_version.rc == 1
       - (  detect_sudo_version.stdout_lines | select('match', 'Sudo version .*')
-        or detect_sudo_version.stderr | d | search('sudo. (invalid|illegal) option') )
+        or detect_sudo_version.stderr | d is search('sudo. (invalid|illegal) option') )
       - current_play_context.become_flags | trim != expect_flags
       set_fact:
         ansible_become_flags: "{{  expect_flags }}"
