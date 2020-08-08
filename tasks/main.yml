@@ -92,7 +92,8 @@
     - ansible_become: True
     - ansible_become_user: root
     - ansible_become_pass: .
-    raw: exit
+    - ansible_python_interpreter: fake-python
+    ping:
     failed_when: False
     changed_when: False
     ignore_errors: True
