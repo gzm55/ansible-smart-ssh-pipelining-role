@@ -1,4 +1,4 @@
-smart_ssh_pipelining (1.0.3-dev)
+smart_ssh_pipelining (2.0.0-dev)
 ================================
 
 Try to detect and enable ssh pipelining if needed, and set the `ansible_ssh_pipelining` fact.
@@ -21,9 +21,10 @@ Requirements
 ------------
 
 Python modules:
-- ansible >= 2.5
+- ansible >= 2.8
 - jinja2 >= 2.6
 
+For ansible `[2.5, 2.8)`, use `smart_ssh_pipelining 1.0.2`.
 For ansible `[2.2, 2.5)`, use `smart_ssh_pipelining 0.0.1`.
 
 Role Variables

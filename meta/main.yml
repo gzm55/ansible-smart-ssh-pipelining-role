@@ -1,25 +1,24 @@
 galaxy_info:
+  role_name: smart_ssh_pipelining
+  namespace: gzm55
   author: James Z.M. Gao
   description: Try to detect ssh pipeling if needed.
 
   license: BSD
 
-  ## need ConfigManager api
-  min_ansible_version: 2.5
+  # ConfigManager api requires 2.5
+  # ansible.builtin.* requires 2.8
+  min_ansible_version: 2.8
 
   platforms:
   - name: GenericBSD
-    versions:
-    - any
+    versions: [all]
   - name: GenericLinux
-    versions:
-    - any
+    versions: [all]
   - name: Windows
-    versions:
-    - all
+    versions: [all]
   - name: GenericUNIX
-    versions:
-    - any
+    versions: [all]
 
   galaxy_tags: [system, network]
 

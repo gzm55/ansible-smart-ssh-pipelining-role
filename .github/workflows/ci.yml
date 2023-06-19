@@ -1,0 +1,62 @@
+---
+name: ci workflow
+"on": push
+
+env:
+  ANSIBLE_ROLES_PATH: ".."
+
+jobs:
+  test-job:
+    name: test the role on ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-22.04, ubuntu-20.04]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: print versions
+      run: |
+        set -x
+        uname -a
+        python3 --version
+        pip3 --version
+        ansible --version
+        docker version
+
+    - name: prepare tests
+      run: |
+        set -x
+        apt install sshpass
+        sshpass -V
+        pip3 install -r requirements.txt
+        docker pull hermsi/alpine-sshd
+
+    - name: syntax check
+      run: ansible-playbook tests/test.yml -i tests/inventory --syntax-check
+
+  lint-job:
+    name: lint codes
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v3
+    - name: prepare lint
+      run: |
+        pip3 install -r requirements.txt
+        pip3 install ansible-lint
+        ansible-lint --version
+    - name: lint
+      run: ansible-lint --show-relpath
+
+  deploy-job:
+    name: deploy the role on tag
+    runs-on: ubuntu-22.04
+    needs: [test-job, lint-job]
+    if: github.ref_type == 'tag'
+    steps:
+    - uses: actions/checkout@v3
+    - name: publish the role to Galaxy
+      uses: robertdebock/galaxy-action@1.2.1
+      with:
+        galaxy_api_key: ${{ secrets.GALAXY_API_KEY }}
+        git_branch: ${{ github.ref_name }}
