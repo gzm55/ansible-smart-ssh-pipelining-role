@@ -6,17 +6,17 @@
   - ansible-smart-ssh-pipelining-role
 
   tasks:
-  - name: print post status
-    debug: msg="{{ 'post=' + ansible_ssh_pipelining | string }}"
+  - name: Print post status
+    ansible.builtin.debug: msg="{{ 'post=' + ansible_ssh_pipelining | string }}"
 
-  - name: check post status
-    assert: { that: "ansible_ssh_pipelining == (expect_pipelining | d(True) | bool)" }
+  - name: Check post status
+    ansible.builtin.assert: { that: "ansible_ssh_pipelining == (expect_pipelining | d(True) | bool)" }
     when: ([inventory_hostname]) | intersect(['testserverA', 'testserverC', 'testserverE']) | list | length
 
-  - name: check post status for testserverB
-    assert: { that: "ansible_ssh_pipelining" }
+  - name: Check post status for testserverB
+    ansible.builtin.assert: { that: "ansible_ssh_pipelining" }
     when: inventory_hostname == 'testserverB'
 
-  - name: check post status for testserverD
-    assert: { that: "not ansible_ssh_pipelining" }
+  - name: Check post status for testserverD
+    ansible.builtin.assert: { that: "not ansible_ssh_pipelining" }
     when: inventory_hostname == 'testserverD'

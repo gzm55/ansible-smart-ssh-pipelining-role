@@ -1,23 +1,23 @@
 ---
-- name: detect pipelining config origin
+- name: Detect pipelining config origin
   run_once: True
   when:
   - pipelining_config_origin is not defined
   register: pipelining_config_origin
   pipelining_config_origin:
 
-- name: save inventory ssh pipelining status
+- name: Save inventory ssh pipelining status
   when:
   - pipelining_config_origin.msg | d == 'default'
   - ansible_pipelining_is_not_defined is not defined
-  set_fact:
+  ansible.builtin.set_fact:
     ansible_pipelining_is_not_defined: "{{
       hostvars[inventory_hostname].ansible_ssh_pipelining is not defined
       and
       hostvars[inventory_hostname].ansible_pipelining is not defined
       }}"
 
-- name: save play context
+- name: Save play context
   when:
   - pipelining_config_origin.msg | d == 'default'
   - ansible_pipelining_is_not_defined | d
@@ -31,7 +31,7 @@
   ##   | printf "'%s'" $(cat) \
   ##   | sed "s/''/', '/g"
 
-- name: only when pipelining is not defined, and connection supports pipelining
+- name: Only when pipelining is not defined, and connection supports pipelining
   when:
   - current_play_context is not skipped
   - ([current_play_context.connection])
@@ -44,20 +44,20 @@
   ##   0. have a sudo with -n option (since 1.7): keep default sudo flags;
   ##   1. have a sudo without -n option: remove -n from default sudo flags;
   ##   2. no sudo command, do nothing.
-  - name: correct sudo flags
+  - name: Correct sudo flags
     when:
     - current_play_context.become_method == 'sudo'
     - ( [ current_play_context.become_flags | trim ] ) | intersect(['-H -S -n', '-H -S'])
     block:
-    - name: detecting sudo version
+    - name: Detecting sudo version
       register: detect_sudo_version
       vars:
         ansible_become: False
         ansible_become_user: "{{ current_play_context.remote_user | d(None) }}"
-      raw: "{{ current_play_context.become_exe | quote }} -V"
+      ansible.builtin.raw: "{{ current_play_context.become_exe | quote }} -V"
       failed_when: not [ detect_sudo_version.rc ] | intersect([0, 1, 127])
       changed_when: False
-    - name: update sudo flag
+    - name: Update sudo flag
       vars:
         sudo_version: "{{ detect_sudo_version.stdout_lines
                           | select('match', 'Sudo version .*')
@@ -72,7 +72,7 @@
       - (  detect_sudo_version.stdout_lines | select('match', 'Sudo version .*')
         or detect_sudo_version.stderr | d is search('sudo. (invalid|illegal) option') )
       - current_play_context.become_flags | trim != expect_flags
-      set_fact:
+      ansible.builtin.set_fact:
         ansible_become_flags: "{{  expect_flags }}"
 
   ## NOTE: When become method is 'su', it will ignore ansible_pipelining,
@@ -82,7 +82,7 @@
   ## NOTE: Having remote hosts without 'sudo' command,
   ##       or become flags containing invalid options, we also enable pipelining,
   ##       cause a become-task will always fail in this scenario.
-  - name: detecting
+  - name: Detecting
     when:
     - current_play_context.become_method == 'sudo'
     register: detect_pipelining
@@ -93,7 +93,7 @@
       ansible_become_user: root
       ansible_become_pass: .
       ansible_python_interpreter: fake-python
-    ping:
+    ansible.builtin.ping:
     # Pipelining detecting requires python module to not allocate pysudo-tty,
     # so we cannot use the raw module. Override ansible_python_interpreter to avoid
     # Python interpreter discovery.
@@ -103,7 +103,7 @@
     changed_when: False
     ignore_errors: True
 
-  - name: flipping pipelining
+  - name: Flipping pipelining
     vars:
       detect_string: "{{ [detect_pipelining.module_stdout, detect_pipelining.module_stderr, detect_pipelining.msg] | select('defined') | join('\n') }}"
     when:
@@ -112,5 +112,5 @@
         or
         ( detect_string is not search('must have a tty') and detect_string is not search('no tty present') )
       )
-    set_fact:
+    ansible.builtin.set_fact:
       ansible_pipelining: "{{ not ansible_pipelining }}"

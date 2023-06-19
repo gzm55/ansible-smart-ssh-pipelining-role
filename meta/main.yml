@@ -8,7 +8,7 @@ galaxy_info:
 
   # ConfigManager api requires 2.5
   # ansible.builtin.* requires 2.8
-  min_ansible_version: 2.8
+  min_ansible_version: "2.8"
 
   platforms:
   - name: GenericBSD

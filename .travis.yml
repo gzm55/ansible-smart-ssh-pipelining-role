@@ -9,7 +9,7 @@ python:
 
 # Use the docker for testing
 services:
-  - docker
+- docker
 
 # Install ansible
 addons:
@@ -19,74 +19,74 @@ addons:
     - sshpass
 
 install:
-  - which ssh && which ssh-keygen && which ssh-agent && which ssh-add && which sshpass
+- which ssh && which ssh-keygen && which ssh-agent && which ssh-add && which sshpass
 
-  # Install ansible
-  - pip install ansible ansible-lint
+# Install ansible
+- pip install ansible ansible-lint
 
-  # Check ansible version
-  - ansible --version
+# Check ansible version
+- ansible --version
 
-  # Install python module and role dependencies
-  - test -f requirements.txt && pip install -r requirements.txt
+# Install python module and role dependencies
+- test -f requirements.txt && pip install -r requirements.txt
 
-  # Start a sshd container for testing
-  # - listen on localhost:4848
-  # - enable root login
-  # - root:root123456 and pubkey
-  # - userA:userA123456 and pubkey
-  - docker pull danielguerra/alpine-sshd
-  - docker rm -f alpine-sshd || true
-  - docker run -p 4848:22 --name alpine-sshd --hostname alpine-sshd -d danielguerra/alpine-sshd sh -c 'echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && exec /usr/sbin/sshd -D'
-  - echo -e "root123456\nroot123456\n" | docker exec -i alpine-sshd passwd
-  - docker exec -i alpine-sshd sh -c 'apk update'
-  - docker exec -i alpine-sshd sh -c 'echo -e "userA123456\nuserA123456\n" | adduser userA'
-  - ssh-keygen -N '' -f ~/.ssh/id_rsa
-  - cat ~/.ssh/id_rsa.pub | docker exec -i alpine-sshd sh -c 'cd; umask 077; mkdir -p .ssh; cat >> .ssh/authorized_keys'
-  - docker exec -i alpine-sshd sh -c 'su -c "cd; umask 077; mkdir -p .ssh; touch .ssh/known_hosts" userA'
-  - docker exec -i alpine-sshd sh -c 'cat ~/.ssh/authorized_keys >> /home/userA/.ssh/authorized_keys; chown userA:userA /home/userA/.ssh/authorized_keys; chmod 600 /home/userA/.ssh/authorized_keys'
-  - ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:4848 || true
-  - sleep 2 && ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
-  - docker exec -i alpine-sshd sh -c 'su -c "ls -alh ~; ls -alh ~/.ssh; cat ~/.ssh/authorized_keys" userA'
-  - cat ~/.ssh/id_rsa.pub
-  - ssh -C -o Port=4848 -o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -tt userA@localhost echo 'sshd works'
+# Start a sshd container for testing
+# - listen on localhost:4848
+# - enable root login
+# - root:root123456 and pubkey
+# - userA:userA123456 and pubkey
+- docker pull danielguerra/alpine-sshd
+- docker rm -f alpine-sshd || true
+- docker run -p 4848:22 --name alpine-sshd --hostname alpine-sshd -d danielguerra/alpine-sshd sh -c 'echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && exec /usr/sbin/sshd -D'
+- echo -e "root123456\nroot123456\n" | docker exec -i alpine-sshd passwd
+- docker exec -i alpine-sshd sh -c 'apk update'
+- docker exec -i alpine-sshd sh -c 'echo -e "userA123456\nuserA123456\n" | adduser userA'
+- ssh-keygen -N '' -f ~/.ssh/id_rsa
+- cat ~/.ssh/id_rsa.pub | docker exec -i alpine-sshd sh -c 'cd; umask 077; mkdir -p .ssh; cat >> .ssh/authorized_keys'
+- docker exec -i alpine-sshd sh -c 'su -c "cd; umask 077; mkdir -p .ssh; touch .ssh/known_hosts" userA'
+- docker exec -i alpine-sshd sh -c 'cat ~/.ssh/authorized_keys >> /home/userA/.ssh/authorized_keys; chown userA:userA /home/userA/.ssh/authorized_keys; chmod 600 /home/userA/.ssh/authorized_keys'
+- ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:4848 || true
+- sleep 2 && ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
+- docker exec -i alpine-sshd sh -c 'su -c "ls -alh ~; ls -alh ~/.ssh; cat ~/.ssh/authorized_keys" userA'
+- cat ~/.ssh/id_rsa.pub
+- ssh -C -o Port=4848 -o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -tt userA@localhost echo 'sshd works'
 
-  - export ANSIBLE_ROLES_PATH=$PWD/..
+- export ANSIBLE_ROLES_PATH=$PWD/..
 
 script:
-  - set -e
+- set -e
 
-  # Basic role syntax check
-  - ansible-playbook tests/test*.yml -i tests/inventory --syntax-check
-  - ansible-lint .
-  - ansible-lint tests/test*.yml
+# Basic role syntax check
+- ansible-playbook tests/test*.yml -i tests/inventory --syntax-check
+- ansible-lint .
+- ansible-lint tests/test*.yml
 
-  - echo =====[round 1][overriding detecting]=====
-  - printf '[ssh_connection]\npipelining=False' >ansible.cfg
-  - ansible-playbook tests/test.yml -i tests/inventory
-  - echo >ansible.cfg
-  - ansible-playbook tests/test.yml -i tests/inventory --limit testserverB
-  - ANSIBLE_SSH_PIPELINING=False ansible-playbook tests/test.yml -i tests/inventory
+- echo =====[round 1][overriding detecting]=====
+- printf '[ssh_connection]\npipelining=False' >ansible.cfg
+- ansible-playbook tests/test.yml -i tests/inventory
+- echo >ansible.cfg
+- ansible-playbook tests/test.yml -i tests/inventory --limit testserverB
+- ANSIBLE_SSH_PIPELINING=False ansible-playbook tests/test.yml -i tests/inventory
 
-  - echo =====[round 2][no sudo command]=====
-  - docker exec -i alpine-sshd sh -c '! command -v sudo || apk del sudo'
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True
+- echo =====[round 2][no sudo command]=====
+- docker exec -i alpine-sshd sh -c '! command -v sudo || apk del sudo'
+- ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True
 
-  - echo =====[round 3][sudo + requiretty]=====
-  - docker exec -i alpine-sshd sh -c 'apk add sudo; echo "Defaults requiretty" >/etc/sudoers.d/reqtty'
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=False
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=False --become
-  - docker exec -i alpine-sshd sh -c 'echo "Defaults !requiretty" >/etc/sudoers.d/reqtty'
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become
+- echo =====[round 3][sudo + requiretty]=====
+- docker exec -i alpine-sshd sh -c 'apk add sudo; echo "Defaults requiretty" >/etc/sudoers.d/reqtty'
+- ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=False
+- ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=False --become
+- docker exec -i alpine-sshd sh -c 'echo "Defaults !requiretty" >/etc/sudoers.d/reqtty'
+- ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True
+- ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become
 
-  - echo =====[round 4][other become methods]=====
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method su --become
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method pbrun
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method pfexec
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method doas
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method dzdo
-  - ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method ksu --become-user X
+- echo =====[round 4][other become methods]=====
+- ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method su --become
+- ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method pbrun
+- ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method pfexec
+- ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method doas
+- ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method dzdo
+- ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method ksu --become-user X
 
 notifications:
   webhooks: https://galaxy.ansible.com/api/v1/notifications/
