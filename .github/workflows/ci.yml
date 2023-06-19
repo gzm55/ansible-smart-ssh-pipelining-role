@@ -19,6 +19,7 @@ jobs:
       run: |
         set -x
         uname -a
+        id
         python3 --version
         pip3 --version
         ansible --version
@@ -27,7 +28,7 @@ jobs:
     - name: prepare tests
       run: |
         set -x
-        apt install sshpass
+        sudo apt install sshpass
         sshpass -V
         pip3 install -r requirements.txt
         docker pull hermsi/alpine-sshd
