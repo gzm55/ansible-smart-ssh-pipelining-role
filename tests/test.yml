@@ -1,5 +1,6 @@
 ---
-- hosts: all
+- name: Test this role
+  hosts: all
   gather_facts: False
   pre_tasks:
   - name: Pre role status
@@ -14,6 +15,7 @@
     ansible.builtin.set_fact:
       post_status: "{{ ansible_ssh_pipelining }}"
   - name: Print post status
-    ansible.builtin.debug: msg="{{ [ 'pre=' + pre_status | string, 'post=' + post_status | string ] }}"
+    ansible.builtin.debug:
+      msg: "{{ ['pre=' + pre_status | string, 'post=' + post_status | string] }}"
   - name: Check post status
     ansible.builtin.assert: { that: "pre_status == post_status" }

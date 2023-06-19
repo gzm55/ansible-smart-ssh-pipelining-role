@@ -1,5 +1,6 @@
 ---
-- hosts: all
+- name: Test this role with expected result
+  hosts: all
   gather_facts: False
 
   roles:
@@ -7,7 +8,8 @@
 
   tasks:
   - name: Print post status
-    ansible.builtin.debug: msg="{{ 'post=' + ansible_ssh_pipelining | string }}"
+    ansible.builtin.debug:
+      msg: "{{ 'post=' + ansible_ssh_pipelining | string }}"
 
   - name: Check post status
     ansible.builtin.assert: { that: "ansible_ssh_pipelining == (expect_pipelining | d(True) | bool)" }
