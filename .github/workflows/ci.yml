@@ -56,7 +56,7 @@ jobs:
     - name: TEST - overriding detecting
       run: |
         set -x
-        printf '[ssh_connection]\npipelining=False' >ansible.cfg
+        printf '[defaults]\npipelining=False' >ansible.cfg
         ansible-playbook -vvvvv --user root tests/test.yml -i tests/inventory
         rm ansible.cfg
         ansible-playbook --user root tests/test.yml -i tests/inventory --limit testserverB
