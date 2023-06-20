@@ -53,7 +53,7 @@ jobs:
         ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
         ssh -C -o Port=4848 -o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -tt userA@localhost echo 'sshd works'
 
-    - name: [TEST] overriding detecting
+    - name: TEST - overriding detecting
       run: |
         set -x
         printf '[ssh_connection]\npipelining=False' >ansible.cfg
