@@ -62,6 +62,32 @@ jobs:
         ansible-playbook --user root tests/test.yml -i tests/inventory --limit testserverB
         ANSIBLE_PIPELINING=False ansible-playbook --user root tests/test.yml -i tests/inventory
 
+    - name: TEST - no sudo command
+      run: |
+        set -x
+        docker exec -i alpine-sshd sh -c '! command -v sudo || apk del sudo'
+        ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True
+
+    - name: TEST - sudo + requiretty
+      run: |
+        set -x
+        docker exec -i alpine-sshd sh -c 'apk add sudo; echo "Defaults requiretty" >/etc/sudoers.d/reqtty'
+        ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=False
+        ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=False --become
+        docker exec -i alpine-sshd sh -c 'echo "Defaults !requiretty" >/etc/sudoers.d/reqtty'
+        ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True
+        ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become
+
+    - name: TEST - other become methods
+      run: |
+        set -x
+        ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method su --become
+        ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method pbrun
+        ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method pfexec
+        ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method doas
+        ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method dzdo
+        ansible-playbook tests/test-and-expect.yml -i tests/inventory --user userA -e expect_pipelining=True --become-method ksu --become-user X
+
   lint-job:
     name: lint codes
     runs-on: ubuntu-22.04
