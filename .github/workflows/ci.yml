@@ -31,6 +31,13 @@ jobs:
         sudo apt install sshpass
         sshpass -V
         pip3 install -r requirements.txt
+
+    - name: syntax check
+      run: ansible-playbook tests/test.yml -i tests/inventory --syntax-check
+
+    - name: prepare sshd container
+      run: |
+        set -x
         docker pull hermsi/alpine-sshd
 
         # Start a sshd container for testing
@@ -39,15 +46,21 @@ jobs:
         # - enable pubkey for user root and userA
         ssh-keygen -N '' -f ~/.ssh/id_rsa
         cp ~/.ssh/id_rsa.pub authorized_keys
-        docker run -p 4848:22 --name alpine-sshd --hostname alpine-sshd -d -e ROOT_KEYPAIR_LOGIN_ENABLED=true -v `pwd`/authorized_keys:/root/.ssh/authorized_keys:ro -e SSH_USERS="userA:1000:1000" -v `pwd`/authorized_keys:/conf.d/authorized_keys/userA:ro hermsi/alpine-sshd
+        docker run -p 4848:22 --name alpine-sshd --hostname alpine-sshd -d -e ROOT_KEYPAIR_LOGIN_ENABLED=true -v `pwd`/authorized_keys:/root/.ssh/authorized_keys -e SSH_USERS="userA:1000:1000" -v `pwd`/authorized_keys:/conf.d/authorized_keys/userA:ro hermsi/alpine-sshd
         docker exec -i alpine-sshd sh -c 'apk update'
         ssh-keygen -f ~/.ssh/known_hosts -R [localhost]:4848 || true
         sleep 2
         ssh-keyscan -p 4848 localhost >> ~/.ssh/known_hosts
         ssh -C -o Port=4848 -o KbdInteractiveAuthentication=no -o PreferredAuthentications=gssapi-with-mic,gssapi-keyex,hostbased,publickey -o PasswordAuthentication=no -tt userA@localhost echo 'sshd works'
 
-    - name: syntax check
-      run: ansible-playbook tests/test.yml -i tests/inventory --syntax-check
+    - name: [TEST] overriding detecting
+      run: |
+        set -x
+        printf '[ssh_connection]\npipelining=False' >ansible.cfg
+        ansible-playbook tests/test.yml -i tests/inventory
+        rm ansible.cfg
+        ansible-playbook tests/test.yml -i tests/inventory --limit testserverB
+        ANSIBLE_SSH_PIPELINING=False ansible-playbook tests/test.yml -i tests/inventory
 
   lint-job:
     name: lint codes
