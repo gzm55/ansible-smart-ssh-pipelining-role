@@ -57,7 +57,7 @@ jobs:
       run: |
         set -x
         printf '[ssh_connection]\npipelining=False' >ansible.cfg
-        ansible-playbook tests/test.yml -i tests/inventory
+        ansible-playbook -vvv tests/test.yml -i tests/inventory
         rm ansible.cfg
         ansible-playbook tests/test.yml -i tests/inventory --limit testserverB
         ANSIBLE_SSH_PIPELINING=False ansible-playbook tests/test.yml -i tests/inventory
