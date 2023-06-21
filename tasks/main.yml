@@ -113,4 +113,5 @@
         ( detect_string is not search('must have a tty') and detect_string is not search('no tty present') )
       )
     ansible.builtin.set_fact:
+      ansible_ssh_pipelining: "{{ not ansible_pipelining }}"
       ansible_pipelining: "{{ not ansible_pipelining }}"
