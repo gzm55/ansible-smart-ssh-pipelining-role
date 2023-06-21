@@ -106,12 +106,10 @@
   - name: Flipping pipelining
     vars:
       detect_string: "{{ [detect_pipelining.module_stdout, detect_pipelining.module_stderr, detect_pipelining.msg] | select('defined') | join('\n') }}"
-    when:
-    - ansible_pipelining | d(False) != (
-        current_play_context.become_method != 'sudo'
-        or
-        ( detect_string is not search('must have a tty') and detect_string is not search('no tty present') )
-      )
+      detect_pipelining_result: "{{
+          current_play_context.become_method != 'sudo' or
+          ( detect_string is not search('must have a tty') and detect_string is not search('no tty present') )
+        }}"
     ansible.builtin.set_fact:
-      ansible_ssh_pipelining: "{{ not ansible_pipelining }}"
-      ansible_pipelining: "{{ not ansible_pipelining }}"
+      ansible_pipelining: "{{ detect_pipelining_result }}"
+      ansible_ssh_pipelining: "{{ detect_pipelining_result }}"
